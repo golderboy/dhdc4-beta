@@ -36,3 +36,19 @@
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Yii2 required local configuration
+!backend/config/main-local.php
+!backend/config/params-local.php
+!common/config/main-local.php
+!common/config/params-local.php
+!console/config/main-local.php
+!console/config/params-local.php
+!frontend/config/main-local.php
+!frontend/config/params-local.php
+backend/config/test-local.php
+frontend/config/test-local.php
+common/config/connect_database.php
+common/config/connect_update.php
+!common/config/connect_database.example.php
+!common/config/connect_update.example.php
