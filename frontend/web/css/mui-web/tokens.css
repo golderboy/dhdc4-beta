@@ -1,0 +1,114 @@
+/*
+ * Material UI-like design tokens for the Yii2 frontend.
+ * Scoped variables keep the Bootstrap 3 runtime intact and make rollback simple.
+ */
+.mui-web-scope,
+.mui-web-scope[data-mui-web-color-scheme="light"] {
+    --mui-web-primary-50: #e7f7f2;
+    --mui-web-primary-100: #c5efe3;
+    --mui-web-primary-200: #96e5d1;
+    --mui-web-primary-300: #4aedc4;
+    --mui-web-primary-400: #1de9b6;
+    --mui-web-primary-500: #14a37f;
+    --mui-web-primary-600: #118b6d;
+    --mui-web-primary-700: #0f735b;
+    --mui-web-blue-50: #e8f3ff;
+    --mui-web-blue-500: #1976d2;
+    --mui-web-blue-700: #1565c0;
+    --mui-web-green-500: #14a37f;
+    --mui-web-green-50: #e7f7f2;
+    --mui-web-amber-500: #ffb300;
+    --mui-web-orange-600: #fb8c00;
+    --mui-web-red-600: #d32f2f;
+    --mui-web-red-50: #ffebee;
+    --mui-web-violet-600: #5e35b1;
+
+    --mui-web-palette-primary-main: #14a37f;
+    --mui-web-palette-primary-light: #4aedc4;
+    --mui-web-palette-primary-dark: #0f735b;
+    --mui-web-palette-primary-contrast-text: #ffffff;
+    --mui-web-palette-secondary-main: #1de9b6;
+    --mui-web-palette-secondary-light: #4aedc4;
+    --mui-web-palette-secondary-dark: #14a37f;
+    --mui-web-palette-secondary-contrast-text: #053b30;
+    --mui-web-palette-success-main: #2e7d32;
+    --mui-web-palette-success-light: #e7f7f2;
+    --mui-web-palette-success-dark: #1b5e20;
+    --mui-web-palette-warning-main: #ed6c02;
+    --mui-web-palette-warning-light: #fff4e5;
+    --mui-web-palette-warning-dark: #b65a00;
+    --mui-web-palette-error-main: #d32f2f;
+    --mui-web-palette-error-light: #ffebee;
+    --mui-web-palette-error-dark: #8a1c1c;
+    --mui-web-palette-info-main: #0288d1;
+    --mui-web-palette-info-light: #e8f3ff;
+    --mui-web-palette-info-dark: #01579b;
+    --mui-web-palette-background-default: #f6fbf9;
+    --mui-web-palette-background-paper: #ffffff;
+    --mui-web-palette-surface: #ffffff;
+    --mui-web-palette-surface-soft: #f2faf7;
+    --mui-web-palette-text-primary: rgba(15, 23, 42, 0.92);
+    --mui-web-palette-text-secondary: rgba(71, 85, 105, 0.78);
+    --mui-web-palette-text-disabled: rgba(100, 116, 139, 0.58);
+    --mui-web-palette-divider: rgba(15, 66, 53, 0.14);
+    --mui-web-palette-action-hover: rgba(20, 163, 127, 0.08);
+    --mui-web-palette-action-selected: rgba(20, 163, 127, 0.14);
+    --mui-web-palette-action-focus: rgba(20, 163, 127, 0.24);
+    --mui-web-palette-action-disabled: rgba(100, 116, 139, 0.38);
+
+    --mui-web-font-family: "Noto Sans Thai", "Segoe UI", Roboto, Arial, sans-serif;
+    --mui-web-font-size-body1: 14px;
+    --mui-web-font-size-body2: 13px;
+    --mui-web-font-size-caption: 12px;
+    --mui-web-font-size-h6: 20px;
+    --mui-web-font-size-h5: 24px;
+    --mui-web-font-size-h4: 30px;
+    --mui-web-font-weight-regular: 400;
+    --mui-web-font-weight-medium: 600;
+    --mui-web-font-weight-bold: 700;
+    --mui-web-line-height-body1: 1.5;
+    --mui-web-letter-spacing-thai: 0;
+
+    --mui-web-spacing-0: 0;
+    --mui-web-spacing-05: 4px;
+    --mui-web-spacing-1: 8px;
+    --mui-web-spacing-15: 12px;
+    --mui-web-spacing-2: 16px;
+    --mui-web-spacing-3: 24px;
+    --mui-web-spacing-4: 32px;
+    --mui-web-spacing-6: 48px;
+    --mui-web-spacing-8: 64px;
+
+    --mui-web-radius-xs: 2px;
+    --mui-web-radius-sm: 4px;
+    --mui-web-radius-md: 8px;
+    --mui-web-radius-lg: 12px;
+    --mui-web-radius-xl: 16px;
+    --mui-web-radius-pill: 999px;
+    --mui-web-radius-circle: 50%;
+
+    --mui-web-elevation-0: none;
+    --mui-web-elevation-1: 0 1px 2px rgba(15, 23, 42, 0.08), 0 1px 3px rgba(15, 23, 42, 0.06);
+    --mui-web-elevation-2: 0 2px 4px rgba(15, 23, 42, 0.08), 0 4px 10px rgba(15, 23, 42, 0.08);
+    --mui-web-elevation-4: 0 4px 8px rgba(15, 23, 42, 0.10), 0 12px 24px rgba(15, 23, 42, 0.10);
+    --mui-web-elevation-8: 0 8px 16px rgba(15, 23, 42, 0.12), 0 18px 42px rgba(15, 23, 42, 0.14);
+
+    --mui-web-z-app-bar: 1100;
+    --mui-web-z-dropdown: 1250;
+    --mui-web-z-modal: 1300;
+    --mui-web-z-snackbar: 1400;
+    --mui-web-duration-short: 250ms;
+    --mui-web-duration-standard: 300ms;
+    --mui-web-easing-standard: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mui-web-scope *,
+    .mui-web-scope *::before,
+    .mui-web-scope *::after {
+        animation-duration: 0.01ms;
+        animation-iteration-count: 1;
+        scroll-behavior: auto;
+        transition-duration: 0.01ms;
+    }
+}

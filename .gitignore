@@ -1,0 +1,38 @@
+# Dependencies
+/vendor/
+/node_modules/
+/.playwright-cli/
+
+# Yii runtime and generated assets
+/backend/runtime/
+/frontend/runtime/
+/console/runtime/
+/backend/web/assets/
+/frontend/web/assets/
+
+# Local machine configuration and secrets
+**/*-local.php
+**/.env
+/.env
+
+# Test, browser, and generated output
+/output/
+/frontend/web/fortythreebackup/
+
+# Local backups and legacy archives
+/_codex_backup/
+/vendor_php7.rar
+/*.sql
+
+# Logs and temporary files
+*.log
+*.tmp
+*.bak
+*.swp
+*.swo
+~$*
+
+# OS/editor metadata
+.DS_Store
+Thumbs.db
+desktop.ini

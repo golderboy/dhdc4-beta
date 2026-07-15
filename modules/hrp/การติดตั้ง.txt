@@ -1,0 +1,17 @@
+1)  แตกไฟล์ dhdc3/modules/
+
+2) restore ฐานข้อมูล  ในโฟร์เดอร์ dhdc3/modules/hrp/database ไฟล์ dhdc_module_hrp.sql เข้าฐาน
+
+3)  เพิ่มคำสั่งด้านล่างที่ไฟล์  /dhdc3/modules/add_modules.php
+    'hrp' => [
+        'class' => 'modules\hrp\Hrp',
+    ],
+
+4) จัดการระบบ - plugin - เพิ่ม
+Name = ANC HightRisk
+Module Name  = Hrp
+Routing =  /hrp/hrpinput/index
+Type = Module
+Status = On
+
+5) จัดการระบบ - ประมวลผล - 1) transform

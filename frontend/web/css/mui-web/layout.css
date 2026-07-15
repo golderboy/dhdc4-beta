@@ -1,0 +1,220 @@
+.mui-web-scope {
+    background: var(--mui-web-palette-background-default);
+    color: var(--mui-web-palette-text-primary);
+    font-family: var(--mui-web-font-family);
+    font-size: var(--mui-web-font-size-body1);
+    line-height: var(--mui-web-line-height-body1);
+    letter-spacing: var(--mui-web-letter-spacing-thai);
+}
+
+.mui-web-scope *,
+.mui-web-scope *::before,
+.mui-web-scope *::after {
+    box-sizing: border-box;
+}
+
+.mui-web-scope img,
+.mui-web-scope svg,
+.mui-web-scope canvas,
+.mui-web-scope video {
+    max-width: 100%;
+}
+
+.mui-web-scope .mui-web-app-shell {
+    background: var(--mui-web-palette-background-default);
+    min-height: 100%;
+}
+
+.mui-web-scope .mui-web-page-container,
+.mui-web-scope .footer > .container {
+    max-width: 1480px;
+    width: min(100% - 32px, 1480px);
+}
+
+.mui-web-scope .mui-web-page-container {
+    margin-left: auto;
+    margin-right: auto;
+    padding-bottom: var(--mui-web-spacing-3);
+    padding-top: 88px;
+}
+
+.mui-web-scope .navbar-custom.mui-web-app-bar {
+    background: rgba(255, 255, 255, 0.96);
+    border: 0;
+    border-bottom: 3px solid var(--mui-web-palette-primary-main);
+    box-shadow: var(--mui-web-elevation-1);
+    min-height: 58px;
+    z-index: var(--mui-web-z-app-bar);
+}
+
+.mui-web-scope .navbar-custom .navbar-brand {
+    align-items: center;
+    border-radius: var(--mui-web-radius-pill);
+    color: var(--mui-web-palette-primary-main);
+    display: inline-flex;
+    font-weight: var(--mui-web-font-weight-bold);
+    gap: var(--mui-web-spacing-1);
+    height: 42px;
+    margin: 8px 4px 8px 0;
+    padding: 0 14px;
+}
+
+.mui-web-scope .navbar-custom .navbar-brand:hover,
+.mui-web-scope .navbar-custom .navbar-brand:focus {
+    background: var(--mui-web-palette-action-hover);
+    color: var(--mui-web-palette-primary-dark);
+    outline: none;
+}
+
+.mui-web-scope .navbar-custom .navbar-nav > li > a {
+    border: 0;
+    border-radius: var(--mui-web-radius-pill);
+    color: var(--mui-web-palette-text-secondary);
+    font-weight: var(--mui-web-font-weight-medium);
+    line-height: 22px;
+    margin: 8px 2px;
+    padding: 10px 13px;
+    transition: background-color var(--mui-web-duration-short) var(--mui-web-easing-standard),
+        color var(--mui-web-duration-short) var(--mui-web-easing-standard),
+        box-shadow var(--mui-web-duration-short) var(--mui-web-easing-standard);
+}
+
+.mui-web-scope .navbar-custom .navbar-nav > li > a .glyphicon,
+.mui-web-scope .navbar-custom .navbar-brand .glyphicon {
+    color: var(--mui-web-palette-primary-main);
+}
+
+.mui-web-scope .navbar-custom .navbar-nav > li > a:hover,
+.mui-web-scope .navbar-custom .navbar-nav > li > a:focus {
+    background: var(--mui-web-palette-action-hover);
+    color: var(--mui-web-palette-primary-main);
+    outline: none;
+}
+
+.mui-web-scope .navbar-custom .navbar-nav > .active > a,
+.mui-web-scope .navbar-custom .navbar-nav > .active > a:hover,
+.mui-web-scope .navbar-custom .navbar-nav > .active > a:focus,
+.mui-web-scope .navbar-custom .navbar-nav > .open > a,
+.mui-web-scope .navbar-custom .navbar-nav > .open > a:hover,
+.mui-web-scope .navbar-custom .navbar-nav > .open > a:focus {
+    background: var(--mui-web-palette-action-selected);
+    color: var(--mui-web-palette-primary-dark);
+    box-shadow: inset 0 0 0 1px rgba(20, 163, 127, 0.18);
+}
+
+.mui-web-scope .navbar-custom .dropdown-menu {
+    border: 1px solid var(--mui-web-palette-divider);
+    border-radius: var(--mui-web-radius-lg);
+    box-shadow: var(--mui-web-elevation-8);
+    margin-top: var(--mui-web-spacing-05);
+    overflow: hidden;
+    padding: var(--mui-web-spacing-1);
+    z-index: var(--mui-web-z-dropdown);
+}
+
+.mui-web-scope .navbar-custom .dropdown-menu > li > a {
+    border-radius: var(--mui-web-radius-md);
+    color: var(--mui-web-palette-text-primary);
+    padding: 9px 12px;
+}
+
+.mui-web-scope .navbar-custom .dropdown-menu > li > a:hover,
+.mui-web-scope .navbar-custom .dropdown-menu > li > a:focus {
+    background: var(--mui-web-palette-action-hover);
+    color: var(--mui-web-palette-primary-main);
+}
+
+.mui-web-scope .navbar-custom .navbar-toggle {
+    border-color: var(--mui-web-palette-divider);
+    border-radius: var(--mui-web-radius-md);
+    margin-top: 12px;
+}
+
+.mui-web-scope .navbar-custom .navbar-toggle:hover,
+.mui-web-scope .navbar-custom .navbar-toggle:focus {
+    background: var(--mui-web-palette-action-hover);
+}
+
+.mui-web-scope .breadcrumb {
+    align-items: center;
+    background: transparent;
+    border-radius: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--mui-web-spacing-05);
+    margin: 0 0 var(--mui-web-spacing-2);
+    min-width: 0;
+    padding: 0;
+}
+
+.mui-web-scope .breadcrumb > li,
+.mui-web-scope .breadcrumb > li > a {
+    color: var(--mui-web-palette-text-secondary);
+    font-size: var(--mui-web-font-size-body2);
+}
+
+.mui-web-scope .breadcrumb > .active {
+    color: var(--mui-web-palette-text-primary);
+    font-weight: var(--mui-web-font-weight-medium);
+}
+
+.mui-web-scope .mui-web-footer,
+.mui-web-scope .footer {
+    background: rgba(255, 255, 255, 0.96);
+    border-top: 1px solid var(--mui-web-palette-divider);
+    color: var(--mui-web-palette-text-secondary);
+}
+
+.mui-web-scope .footer .container {
+    align-items: center;
+    display: flex;
+    gap: var(--mui-web-spacing-1);
+    justify-content: space-between;
+}
+
+.mui-web-scope .footer .pull-left,
+.mui-web-scope .footer .pull-right {
+    float: none !important;
+}
+
+.mui-web-scope :focus-visible {
+    outline: 3px solid var(--mui-web-palette-action-focus);
+    outline-offset: 2px;
+}
+
+@media (max-width: 767px) {
+    .mui-web-scope .mui-web-page-container,
+    .mui-web-scope .footer > .container {
+        width: 100%;
+    }
+
+    .mui-web-scope .mui-web-page-container {
+        padding-left: 15px;
+        padding-right: 15px;
+        padding-top: 76px;
+    }
+
+    .mui-web-scope .navbar-custom .navbar-nav > li > a {
+        border-radius: var(--mui-web-radius-md);
+        margin: 3px 8px;
+    }
+
+    .mui-web-scope .navbar-custom .navbar-collapse {
+        background: rgba(255, 255, 255, 0.98);
+        border-color: var(--mui-web-palette-divider);
+        box-shadow: var(--mui-web-elevation-4);
+        max-height: calc(100vh - 60px);
+    }
+
+    .mui-web-scope .footer {
+        height: auto;
+        min-height: 60px;
+    }
+
+    .mui-web-scope .footer .container {
+        display: block;
+        padding-bottom: var(--mui-web-spacing-1);
+        padding-top: var(--mui-web-spacing-1);
+        text-align: center;
+    }
+}

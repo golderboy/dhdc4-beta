@@ -1,0 +1,52 @@
+{
+    "name": "yiisoft/yii2-app-advanced",
+    "description": "Yii 2 Advanced Project Template",
+    "keywords": ["yii2", "framework", "advanced", "project template"],
+    "homepage": "http://www.yiiframework.com/",
+    "type": "project",
+    "license": "BSD-3-Clause",
+    "support": {
+        "issues": "https://github.com/yiisoft/yii2/issues?state=open",
+        "forum": "http://www.yiiframework.com/forum/",
+        "wiki": "http://www.yiiframework.com/wiki/",
+        "irc": "irc://irc.freenode.net/yii",
+        "source": "https://github.com/yiisoft/yii2"
+    },
+    "minimum-stability": "stable",
+    "require": {
+        "php": ">=8.2",
+        "yiisoft/yii2": "^2.0.55",
+        "yiisoft/yii2-bootstrap": "^2.0.11",
+        "dektrium/yii2-user": "^0.9.14",
+        "johnitvn/yii2-rbac-plus": "^1.0",
+        "kartik-v/yii2-grid": "^3.5.3",
+        "kartik-v/yii2-widgets": "^3.4.1",
+        "kartik-v/yii2-datecontrol": "^1.9.9",
+        "kartik-v/yii2-tabs-x": "^1.2.9",
+        "miloschuman/yii2-highcharts-widget": "^11.0",
+        "yii2mod/yii2-bootstrap-notify": "^1.2",
+        "phpoffice/phpspreadsheet": "^5.8",
+        "yiisoft/yii2-jui": "^2.0.7",
+        "yiisoft/yii2-symfonymailer": "^2.0.4"
+    },
+    "require-dev": {
+        "yiisoft/yii2-debug": "^2.1",
+        "yiisoft/yii2-gii": "^2.2",
+        "fakerphp/faker": "^1.24",
+        "codeception/codeception": "^5.3",
+        "codeception/module-asserts": "^3.2",
+        "codeception/module-yii2": "^1.1"
+    },
+    "config": {
+        "process-timeout": 1800,
+        "allow-plugins": {
+            "yiisoft/yii2-composer": true
+        }
+    },
+    "repositories": [
+        {
+            "type": "composer",
+            "url": "https://asset-packagist.org"
+        }
+    ]
+}

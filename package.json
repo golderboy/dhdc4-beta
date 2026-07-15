@@ -1,0 +1,17 @@
+{
+  "private": true,
+  "scripts": {
+    "audit:report-sql": "php tools/audit-report-queries.php --modules=hdc,hdcex,population,sqlquery,ehr,import,qc --strict",
+    "audit:report-sql:candidates": "php tools/build-report-sql-standardization-candidates.php",
+    "audit:deps": "composer audit --abandoned=ignore --format=plain && npm audit --audit-level=moderate",
+    "verify:security": "php tools/verify-owasp-security.php",
+    "verify:production-readiness": "php tools/verify-production-readiness.php",
+    "verify:http-security": "php tools/verify-http-security.php",
+    "verify:hdcex-report-pages": "node tools/verify-hdc-report-pages.js --module=hdcex",
+    "verify:hdc-report-pages": "node tools/verify-hdc-report-pages.js",
+    "verify:ui-layout": "node tools/verify-ui-layout.js"
+  },
+  "devDependencies": {
+    "playwright": "1.60.0"
+  }
+}

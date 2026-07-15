@@ -1,0 +1,14 @@
+1)  แตกไฟล์ dhdc3/modules/
+
+2)  เพิ่มคำสั่งด้านล่างที่ไฟล์  /dhdc3/modules/add_modules.php
+    'Tbmaps' => [
+        'class' => 'modules\Tbmaps\Tbmaps',
+    ],
+
+3) จัดการระบบ - plugin - เพิ่ม
+	Name = ผู้ป่วย TB 1.0
+	Module Name  = Tbmaps
+	Routing =  /Tbmaps/map/index
+	Type = Module
+	Status = On
+

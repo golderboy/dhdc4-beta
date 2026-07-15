@@ -1,0 +1,23 @@
+**** อย่าลืม แบ็คอัพก่อน ทุกครั้งที่ติดตั้ง Modules *******
+
+
+1. ก็อปปี้ Folder "pyramid.zip" ไปไว้ที่ <web Root>/modules
+2.เพิ่มคำสั่ง ที่ <web Root>/modules/add_modules.php
+############################
+	'pyramid' => [
+        'class' => 'modules\pyramid\pyramid',
+    ],
+############################	
+3. รัน sys_dhdc_pond.sql ในโฟร์เดอร์ Database
+4.เข้าไป จัดการระบบ->จัดการ Plugin->เพิ่ม โดยใส่ค่าดังนี้
+#####################
+Name => ปีรามิดประชากร
+Module_Name => pyramid
+Routing => /pyramid/default/index
+Type => Module
+Status => On
+#####################
+5.แก้ไขวันที่ประมวลผลประชากรที่ตาราง sys_config_main ฟิล  note2
+6. เข้าไปที่ จัดการระบบ -> ประมวลผล ->1-TransForm รอ
+7.เข้าไปที่ จัดการระบบ -> ประมวลผล ->2-Data QC รอ
+8.ตรวจสอบการทำงานได้ที่ ระบบงาน->ปีรามิดประชากร

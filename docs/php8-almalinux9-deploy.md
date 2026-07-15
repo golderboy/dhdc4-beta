@@ -1,0 +1,165 @@
+# DHDC4 PHP 8 / AlmaLinux 9 Deployment Runbook
+
+เอกสารนี้ใช้สำหรับนำระบบ DHDC4 ที่ปรับให้รองรับ PHP 8 ไปติดตั้งบนเครื่องพัฒนา XAMPP/Apache และเป้าหมาย Production แบบ AlmaLinux 9 + httpd Apache + PHP 8 โดยไม่เปลี่ยน business logic, URL, RBAC, session หรือ CSRF เดิม
+
+## เป้าหมายขั้นต่ำ
+
+- PHP 8.2 ขึ้นไป พร้อม extension ที่ Yii2 ใช้ เช่น `pdo_mysql`, `mbstring`, `intl`, `gd`, `zip`, `fileinfo`, `openssl`
+- MariaDB/MySQL ที่เปิด `local_infile`
+- Database charset/collation หลักเป็น `utf8mb3` / `utf8mb3_general_ci`
+- Apache document root ชี้ไปที่ `frontend/web` และ `backend/web` ตาม virtual host ที่แยกกัน
+- Composer dependencies ติดตั้งจาก `composer.lock`
+
+## Database Compatibility สำหรับ 43 แฟ้ม
+
+หลัง import database หรือ restore backup ให้รัน migration ของโปรเจค:
+
+```bash
+php yii migrate/up --interactive=0
+```
+
+Migration `m260707_162500_php8_43file_compatibility` จะทำสิ่งต่อไปนี้:
+
+- ตั้ง database default เป็น `utf8mb3_general_ci`
+- เพิ่มคอลัมน์ที่จำเป็นสำหรับไฟล์ 43 รุ่นปัจจุบัน เช่น `WEIGHT`, `HSUB`, `PROVIDER`, `LENGTH`, `HEADCIRCUM`, `HEIGHT`, `CHRONICFUPLACE`
+- เพิ่มทั้งตาราง raw และ `dhdc_tmp_*` ที่เกี่ยวข้อง
+- ไม่ลบข้อมูลเดิม และไม่แก้ business logic
+
+## Restore Stored Procedures / Functions
+
+ไฟล์ `db_function.sql` ถูกปรับให้ใช้ได้กับ MariaDB รุ่นใหม่แล้ว:
+
+- normalize definer เป็น `root@localhost`
+- แก้ function `substrCount` ไม่ให้ใช้ตัวแปรชื่อ `offset` ซึ่งชน reserved keyword
+
+ให้ source ด้วย session mode เดียวกับ legacy workflow:
+
+```bash
+mariadb --host=127.0.0.1 --port=33061 --user=root --password=REDACTED_SECRET_8D969EEF6ECA --database=dhdc4 --default-character-set=utf8 \
+  --init-command="SET SESSION sql_mode=''; SET NAMES utf8 COLLATE utf8_general_ci; SET SESSION character_set_collations='utf8mb3=utf8mb3_general_ci,utf8mb4=utf8mb4_general_ci'" \
+  --execute="source D:/xampp/htdocs/dhdc4/db_function.sql"
+```
+
+บน AlmaLinux ให้เปลี่ยน path และ credential ให้ตรงกับ server จริง เช่น `/var/www/dhdc4/db_function.sql`
+
+## Apache / PHP
+
+ตัวอย่าง virtual host:
+
+```apache
+<VirtualHost *:80>
+    ServerName dhdc4.local
+    DocumentRoot /var/www/dhdc4/frontend/web
+
+    <Directory /var/www/dhdc4/frontend/web>
+        AllowOverride All
+        Require all granted
+    </Directory>
+</VirtualHost>
+
+<VirtualHost *:80>
+    ServerName dhdc4-admin.local
+    DocumentRoot /var/www/dhdc4/backend/web
+
+    <Directory /var/www/dhdc4/backend/web>
+        AllowOverride All
+        Require all granted
+    </Directory>
+</VirtualHost>
+```
+
+ค่าที่ควรตรวจใน MariaDB/PHP:
+
+- `local_infile=ON`
+- `max_allowed_packet` เพียงพอกับ ZIP/43 แฟ้ม
+- `character_set_collations` รองรับ `utf8mb3=utf8mb3_general_ci`
+- PHP upload/post limits ใหญ่พอสำหรับไฟล์ ZIP จริง
+- สิทธิ์เขียนได้ที่ `frontend/runtime`, `backend/runtime`, `console/runtime`, `frontend/web/assets`, `backend/web/assets`, `frontend/web/fortythree`, `frontend/web/fortythreebackup`, `frontend/web/unzip`
+
+## Verification Checklist
+
+หลัง deploy ให้ตรวจตามลำดับนี้:
+
+1. `php yii migrate/new` ต้องไม่พบ migration ค้าง
+2. `php -l` ผ่านสำหรับ controller ที่แก้ไข
+3. หน้า `/import/upload/index` และ `/import/count-file/index` เปิดได้
+4. import ZIP 43 แฟ้มจริงผ่านหน้าเว็บ และ `sys_upload_fortythree.note2 = OK`
+5. `sys_count_import_file` มีรายการครบตามไฟล์ `.txt` ใน ZIP
+6. backend `/exec/transform/exec` ตอบ `ประมวลผลเสร็จสมบูรณ์`
+7. backend `/exec/qc/exec` ตอบ `ประมวลผลเสร็จสมบูรณ์`
+8. `sys_process_running.is_running = false`
+9. `last_transform.last_time` และ `last_err_check.last_time` เป็นเวลาปัจจุบัน
+10. หน้า `/qc/default/index` และ `/hdc/default/index` เปิดได้
+
+## UI Non-Regression Gate
+
+UI ใหม่ต้องไม่กระทบ workflow เดิม โดยเฉพาะการนำเข้า 43 แฟ้ม, Transform, QC, session, RBAC และ CSRF เดิม ก่อนส่งงาน UI ให้รัน smoke test แบบ read-only:
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
+.\tools\smoke-ui-readonly.ps1
+```
+
+สคริปต์นี้ตรวจโดยไม่กด import, ไม่กด Transform, ไม่กด QC และไม่แก้ข้อมูล:
+
+- PHP lint ของ view/controller สำคัญ
+- ไม่มี migration ค้าง
+- มี upload 43 แฟ้มที่สำเร็จแล้ว
+- `sys_count_import_file` ไม่ว่าง
+- `sys_process_running = false`
+- หน้า UI pilot เปิดได้และมี `dhdc-page-header` / `dhdc-stat-card`
+- backend process page ยัง render ได้หรือ redirect ไป login ตาม auth เดิม
+- frontend protected routes เช่น `/Unitcost/default/index`, `/student/default/index`, `/Tbmaps/default/index` และ `/hdc/default/report-id` ต้อง redirect ไปหน้า login ตาม auth เดิมเมื่อยังไม่ login
+- ไม่มี `Database Exception` หรือ `PHP Warning` แสดงบนหน้า
+- ไม่มี application log ระดับ `[error]` เกิดใหม่ระหว่าง smoke run
+
+หลังปรับ UI ให้เก็บ screenshot จาก browser จริงไว้ใน `output/playwright/` สำหรับหน้าหลักที่แก้ เช่น:
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
+.\tools\capture-ui-screens.ps1
+```
+
+- `import-dashboard-desktop.png`
+- `import-dashboard-mobile.png`
+- `plugin-dashboard-desktop.png`
+- `hdc-index-desktop.png`
+- `qof-dashboard-desktop.png`
+- `frontend-login-desktop.png`
+- `backend-login-desktop.png`
+- `frontend-user-login-desktop.png`
+- `backend-user-login-desktop.png`
+
+หากหน้า protected route ต้องปรับ UI ภายใน ควรทดสอบด้วยบัญชีจริงที่มี role `User` หรือ `Admin` ก่อนส่งงาน เพื่อยืนยันว่า RBAC, session และ action ที่มี side effect ยังเหมือนเดิม
+
+เมื่อต้องทดสอบหน้า protected route ด้วยบัญชีจริง ให้ใช้สคริปต์ authenticated smoke โดยส่ง credential ผ่านพารามิเตอร์ ไม่ hardcode ลงไฟล์:
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
+.\tools\smoke-ui-authenticated.ps1 -Username "<user>" -Password "<password>"
+```
+
+## Release Gate
+
+ก่อนส่งงานหรือ deploy ให้รัน gate รวมนี้เป็นคำสั่งหลัก โดยส่ง credential ผ่าน parameter และไม่บันทึกรหัสผ่านลงไฟล์:
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
+.\tools\verify-release.ps1 -Username "<user>" -Password "<password>"
+```
+
+`verify-release.ps1` จะรัน `smoke-ui-readonly.ps1`, `smoke-ui-authenticated.ps1`, `capture-ui-screens.ps1` และตรวจ database invariant รอบสุดท้าย โดยต้องผ่านเงื่อนไขหลัก:
+
+- import ZIP 43 แฟ้มเป้าหมายต้อง `OK`
+- จำนวนไฟล์นำเข้าและจำนวน record รวมต้องตรงกับชุดทดสอบ
+- Transform/QC ต้องจบแล้ว และ `sys_process_running = false`
+- `hdc_log` และ `sys_check_process` ต้องจบที่ `end`
+- active module routes ใน `sys_dhdc_plugin` ต้องถูกตรวจด้วย authenticated smoke
+- screenshot หลักต้องถูกสร้างใน `output/playwright/`
+
+## Rollback
+
+- ก่อน migration หรือ source routine ให้ backup database เต็มเสมอ
+- Migration นี้ไม่ทำ `safeDown` เพราะการลบ column หลัง import อาจทำให้ข้อมูล 43 แฟ้มสูญหาย
+- หากต้อง rollback ให้ restore DB backup และ restore code revision ก่อน deploy
+- ถ้า routine restore มีปัญหา ให้ restore routine backup หรือ source `db_function.sql` รุ่นก่อนหน้าที่สำรองไว้

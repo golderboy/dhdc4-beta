@@ -1,0 +1,816 @@
+.mui-web-scope .panel,
+.mui-web-scope .well,
+.mui-web-scope .grid-view,
+.mui-web-scope .dhdc-panel,
+.mui-web-scope .dhdc-stat-card,
+.mui-web-scope .dhdc-app-card,
+.mui-web-scope .dhdc-link-card,
+.mui-web-scope .dhdc-report-row,
+.mui-web-scope .dhdc-login-card {
+    background: var(--mui-web-palette-surface);
+    border: 1px solid var(--mui-web-palette-divider);
+    border-radius: var(--mui-web-radius-lg);
+    box-shadow: var(--mui-web-elevation-1);
+}
+
+.mui-web-scope .panel,
+.mui-web-scope .well,
+.mui-web-scope .dhdc-panel,
+.mui-web-scope .dhdc-login-card {
+    padding: var(--mui-web-spacing-2);
+}
+
+.mui-web-scope .panel {
+    overflow: hidden;
+}
+
+.mui-web-scope .panel > .panel-heading {
+    background: var(--mui-web-palette-surface-soft);
+    border-bottom: 1px solid var(--mui-web-palette-divider);
+    border-radius: var(--mui-web-radius-lg) var(--mui-web-radius-lg) 0 0;
+    color: var(--mui-web-palette-text-primary);
+    font-weight: var(--mui-web-font-weight-bold);
+    margin: calc(var(--mui-web-spacing-2) * -1) calc(var(--mui-web-spacing-2) * -1) var(--mui-web-spacing-2);
+    padding: 14px var(--mui-web-spacing-2);
+}
+
+.mui-web-scope .dhdc-page-header {
+    align-items: flex-start;
+    display: flex;
+    gap: var(--mui-web-spacing-2);
+    justify-content: space-between;
+    margin-bottom: var(--mui-web-spacing-2);
+    min-width: 0;
+}
+
+.mui-web-scope .dhdc-page-title,
+.mui-web-scope h1 {
+    color: var(--mui-web-palette-text-primary);
+    font-size: var(--mui-web-font-size-h5);
+    font-weight: var(--mui-web-font-weight-bold);
+    letter-spacing: 0;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+}
+
+.mui-web-scope .dhdc-page-subtitle {
+    color: var(--mui-web-palette-text-secondary);
+    max-width: 860px;
+    overflow-wrap: anywhere;
+}
+
+.mui-web-scope .dhdc-stat-grid {
+    display: grid;
+    gap: var(--mui-web-spacing-2);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.mui-web-scope .dhdc-stat-card {
+    --mui-web-stat-bg: var(--mui-web-palette-surface);
+    --mui-web-stat-border: var(--mui-web-palette-divider);
+    --mui-web-stat-value: var(--mui-web-palette-text-primary);
+    --mui-web-stat-label: var(--mui-web-palette-text-secondary);
+    background: var(--mui-web-stat-bg);
+    border-color: var(--mui-web-stat-border);
+    color: var(--mui-web-stat-value);
+    min-width: 0;
+    overflow: hidden;
+    padding: var(--mui-web-spacing-2);
+    position: relative;
+    transition: box-shadow var(--mui-web-duration-standard) var(--mui-web-easing-standard),
+        transform var(--mui-web-duration-standard) var(--mui-web-easing-standard);
+}
+
+.mui-web-scope .dhdc-stat-card:hover {
+    box-shadow: var(--mui-web-elevation-4);
+    transform: translateY(-1px);
+}
+
+.mui-web-scope .dhdc-stat-card::before {
+    background: var(--mui-web-stat-border);
+    border-radius: var(--mui-web-radius-pill);
+    content: "";
+    height: 4px;
+    left: 0;
+    position: absolute;
+    right: 0;
+    top: 0;
+}
+
+.mui-web-scope .dhdc-stat-card[color="primary"],
+.mui-web-scope .dhdc-stat-card.dhdc-stat-card--primary,
+.mui-web-scope .dhdc-stat-card.color-primary,
+.mui-web-scope .dhdc-stat-grid > .dhdc-stat-card:nth-child(1):not([color]):not([class*="dhdc-stat-card--"]):not([class*="color-"]) {
+    --mui-web-stat-bg: var(--mui-web-palette-primary-main);
+    --mui-web-stat-border: var(--mui-web-palette-primary-dark);
+    --mui-web-stat-value: var(--mui-web-palette-primary-contrast-text);
+    --mui-web-stat-label: rgba(255, 255, 255, 0.82);
+}
+
+.mui-web-scope .dhdc-stat-card[color="secondary"],
+.mui-web-scope .dhdc-stat-card.dhdc-stat-card--secondary,
+.mui-web-scope .dhdc-stat-card.color-secondary,
+.mui-web-scope .dhdc-stat-grid > .dhdc-stat-card:nth-child(2):not([color]):not([class*="dhdc-stat-card--"]):not([class*="color-"]) {
+    --mui-web-stat-bg: var(--mui-web-palette-secondary-main);
+    --mui-web-stat-border: var(--mui-web-palette-secondary-dark);
+    --mui-web-stat-value: var(--mui-web-palette-secondary-contrast-text);
+    --mui-web-stat-label: rgba(5, 59, 48, 0.76);
+}
+
+.mui-web-scope .dhdc-stat-card[color="success"],
+.mui-web-scope .dhdc-stat-card.dhdc-stat-card--success,
+.mui-web-scope .dhdc-stat-card.color-success,
+.mui-web-scope .dhdc-stat-grid > .dhdc-stat-card:nth-child(3):not([color]):not([class*="dhdc-stat-card--"]):not([class*="color-"]) {
+    --mui-web-stat-bg: var(--mui-web-palette-success-main);
+    --mui-web-stat-border: var(--mui-web-palette-success-dark);
+    --mui-web-stat-value: #ffffff;
+    --mui-web-stat-label: rgba(255, 255, 255, 0.82);
+}
+
+.mui-web-scope .dhdc-stat-card[color="warning"],
+.mui-web-scope .dhdc-stat-card.dhdc-stat-card--warning,
+.mui-web-scope .dhdc-stat-card.color-warning,
+.mui-web-scope .dhdc-stat-grid > .dhdc-stat-card:nth-child(4):not([color]):not([class*="dhdc-stat-card--"]):not([class*="color-"]) {
+    --mui-web-stat-bg: var(--mui-web-palette-warning-main);
+    --mui-web-stat-border: var(--mui-web-palette-warning-dark);
+    --mui-web-stat-value: #ffffff;
+    --mui-web-stat-label: rgba(255, 255, 255, 0.84);
+}
+
+.mui-web-scope .dhdc-stat-card[color="error"],
+.mui-web-scope .dhdc-stat-card.dhdc-stat-card--error,
+.mui-web-scope .dhdc-stat-card.color-error {
+    --mui-web-stat-bg: var(--mui-web-palette-error-main);
+    --mui-web-stat-border: var(--mui-web-palette-error-dark);
+    --mui-web-stat-value: #ffffff;
+    --mui-web-stat-label: rgba(255, 255, 255, 0.84);
+}
+
+.mui-web-scope .dhdc-stat-card[color="info"],
+.mui-web-scope .dhdc-stat-card.dhdc-stat-card--info,
+.mui-web-scope .dhdc-stat-card.color-info {
+    --mui-web-stat-bg: var(--mui-web-palette-info-main);
+    --mui-web-stat-border: var(--mui-web-palette-info-dark);
+    --mui-web-stat-value: #ffffff;
+    --mui-web-stat-label: rgba(255, 255, 255, 0.84);
+}
+
+.mui-web-scope .dhdc-stat-card[color="inherit"],
+.mui-web-scope .dhdc-stat-card.dhdc-stat-card--inherit,
+.mui-web-scope .dhdc-stat-card.color-inherit {
+    --mui-web-stat-bg: var(--mui-web-palette-surface);
+    --mui-web-stat-border: var(--mui-web-palette-divider);
+    --mui-web-stat-value: var(--mui-web-palette-text-primary);
+    --mui-web-stat-label: var(--mui-web-palette-text-secondary);
+}
+
+.mui-web-scope .dhdc-stat-label {
+    color: var(--mui-web-stat-label, var(--mui-web-palette-text-secondary));
+    font-size: var(--mui-web-font-size-caption);
+    font-weight: var(--mui-web-font-weight-bold);
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+.mui-web-scope .dhdc-stat-value {
+    color: var(--mui-web-stat-value, var(--mui-web-palette-primary-main));
+    font-size: 28px;
+    font-weight: var(--mui-web-font-weight-bold);
+    line-height: 1.15;
+}
+
+.mui-web-scope .dhdc-stat-note,
+.mui-web-scope .dhdc-list-meta {
+    color: var(--mui-web-palette-text-secondary);
+    font-size: var(--mui-web-font-size-caption);
+    overflow-wrap: anywhere;
+}
+
+.mui-web-scope .dhdc-stat-card .dhdc-stat-note {
+    color: var(--mui-web-stat-label, var(--mui-web-palette-text-secondary));
+}
+
+.mui-web-scope .dhdc-toolbar,
+.mui-web-scope .dhdc-filter-panel {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--mui-web-spacing-1);
+}
+
+.mui-web-scope .dhdc-link-card,
+.mui-web-scope .dhdc-report-row,
+.mui-web-scope .dhdc-app-card {
+    transition: border-color var(--mui-web-duration-short) var(--mui-web-easing-standard),
+        box-shadow var(--mui-web-duration-short) var(--mui-web-easing-standard),
+        transform var(--mui-web-duration-short) var(--mui-web-easing-standard);
+}
+
+.mui-web-scope .dhdc-link-card:hover,
+.mui-web-scope .dhdc-report-row:hover,
+.mui-web-scope .dhdc-app-card:hover,
+.mui-web-scope .dhdc-app-card:focus {
+    background: var(--mui-web-palette-surface-soft);
+    border-color: rgba(20, 163, 127, 0.38);
+    box-shadow: var(--mui-web-elevation-4);
+    transform: translateY(-1px);
+}
+
+.mui-web-scope .dhdc-link-icon,
+.mui-web-scope .dhdc-report-number {
+    background: var(--mui-web-primary-50);
+    border-radius: var(--mui-web-radius-lg);
+    color: var(--mui-web-palette-primary-dark);
+}
+
+.mui-web-scope .btn {
+    border-radius: var(--mui-web-radius-md);
+    font-weight: var(--mui-web-font-weight-medium);
+    letter-spacing: 0;
+    min-height: 34px;
+    transition: background-color var(--mui-web-duration-short) var(--mui-web-easing-standard),
+        border-color var(--mui-web-duration-short) var(--mui-web-easing-standard),
+        box-shadow var(--mui-web-duration-short) var(--mui-web-easing-standard);
+}
+
+.mui-web-scope .btn:focus,
+.mui-web-scope .btn.focus {
+    box-shadow: 0 0 0 3px var(--mui-web-palette-action-focus);
+    outline: none;
+}
+
+.mui-web-scope .btn:hover {
+    box-shadow: var(--mui-web-elevation-1);
+}
+
+.mui-web-scope .btn[disabled],
+.mui-web-scope .btn.disabled,
+.mui-web-scope fieldset[disabled] .btn {
+    background: rgba(100, 116, 139, 0.12);
+    border-color: rgba(100, 116, 139, 0.18);
+    box-shadow: none;
+    color: var(--mui-web-palette-text-disabled);
+    cursor: not-allowed;
+}
+
+.mui-web-scope .btn.is-loading,
+.mui-web-scope .btn[data-loading="true"] {
+    color: transparent;
+    pointer-events: none;
+    position: relative;
+}
+
+.mui-web-scope .btn.is-loading::after,
+.mui-web-scope .btn[data-loading="true"]::after {
+    animation: mui-web-spin 750ms linear infinite;
+    border: 2px solid rgba(255, 255, 255, 0.56);
+    border-radius: var(--mui-web-radius-circle);
+    border-top-color: currentColor;
+    content: "";
+    height: 16px;
+    left: 50%;
+    margin-left: -8px;
+    margin-top: -8px;
+    position: absolute;
+    top: 50%;
+    width: 16px;
+}
+
+.mui-web-scope .btn-primary {
+    background: var(--mui-web-palette-primary-main);
+    border-color: var(--mui-web-palette-primary-main);
+    color: var(--mui-web-palette-primary-contrast-text);
+}
+
+.mui-web-scope .btn-default {
+    background: var(--mui-web-palette-surface);
+    border-color: var(--mui-web-palette-divider);
+    color: var(--mui-web-palette-text-primary);
+}
+
+.mui-web-scope .btn-default:hover,
+.mui-web-scope .btn-default:focus {
+    background: var(--mui-web-palette-action-hover);
+    border-color: rgba(20, 163, 127, 0.36);
+    color: var(--mui-web-palette-primary-dark);
+}
+
+.mui-web-scope .btn-primary:hover,
+.mui-web-scope .btn-primary:focus {
+    background: var(--mui-web-palette-primary-dark);
+    border-color: var(--mui-web-palette-primary-dark);
+}
+
+.mui-web-scope .btn-info {
+    background: var(--mui-web-palette-info-main);
+    border-color: var(--mui-web-palette-info-main);
+}
+
+.mui-web-scope .btn-blue {
+    background: var(--mui-web-palette-info-main);
+    border-color: var(--mui-web-palette-info-main);
+    color: #ffffff;
+}
+
+.mui-web-scope .btn-green {
+    background: var(--mui-web-palette-primary-main);
+    border-color: var(--mui-web-palette-primary-main);
+    color: #ffffff;
+}
+
+.mui-web-scope .btn-orange {
+    background: var(--mui-web-palette-warning-main);
+    border-color: var(--mui-web-palette-warning-main);
+    color: #ffffff;
+}
+
+.mui-web-scope .btn-success {
+    background: var(--mui-web-palette-success-main);
+    border-color: var(--mui-web-palette-success-main);
+}
+
+.mui-web-scope .btn-warning {
+    background: var(--mui-web-palette-warning-main);
+    border-color: var(--mui-web-palette-warning-main);
+}
+
+.mui-web-scope .btn-danger {
+    background: var(--mui-web-palette-error-main);
+    border-color: var(--mui-web-palette-error-main);
+}
+
+.mui-web-scope .form-control,
+.mui-web-scope .select2-container--krajee .select2-selection,
+.mui-web-scope .input-group-addon {
+    border-color: rgba(100, 116, 139, 0.32);
+    border-radius: var(--mui-web-radius-md);
+    box-shadow: none;
+    color: var(--mui-web-palette-text-primary);
+}
+
+.mui-web-scope .form-group {
+    margin-bottom: var(--mui-web-spacing-2);
+}
+
+.mui-web-scope label,
+.mui-web-scope .control-label {
+    color: var(--mui-web-palette-text-primary);
+    font-weight: var(--mui-web-font-weight-medium);
+}
+
+.mui-web-scope .form-control[disabled],
+.mui-web-scope .form-control[readonly],
+.mui-web-scope fieldset[disabled] .form-control {
+    background: rgba(100, 116, 139, 0.08);
+    color: var(--mui-web-palette-text-disabled);
+}
+
+.mui-web-scope .form-control:focus,
+.mui-web-scope .select2-container--krajee.select2-container--focus .select2-selection {
+    border-color: var(--mui-web-palette-primary-main);
+    box-shadow: 0 0 0 3px var(--mui-web-palette-action-focus);
+}
+
+.mui-web-scope .help-block,
+.mui-web-scope .hint-block {
+    color: var(--mui-web-palette-text-secondary);
+    font-size: var(--mui-web-font-size-caption);
+}
+
+.mui-web-scope .has-error .form-control,
+.mui-web-scope .has-error .select2-selection {
+    border-color: var(--mui-web-palette-error-main);
+}
+
+.mui-web-scope .has-error .help-block {
+    color: var(--mui-web-palette-error-main);
+}
+
+.mui-web-scope .alert {
+    border: 0;
+    border-radius: var(--mui-web-radius-lg);
+    box-shadow: var(--mui-web-elevation-1);
+}
+
+.mui-web-scope .alert-danger {
+    background: var(--mui-web-red-50);
+    color: #8a1c1c;
+}
+
+.mui-web-scope .alert-success {
+    background: var(--mui-web-green-50);
+    color: #1b5e20;
+}
+
+.mui-web-scope .alert-info {
+    background: var(--mui-web-blue-50);
+    color: #0d47a1;
+}
+
+.mui-web-scope .table-responsive,
+.mui-web-scope .grid-view,
+.mui-web-scope .kv-grid-container,
+.mui-web-scope .kv-grid-wrapper {
+    -webkit-overflow-scrolling: touch;
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+.mui-web-scope .grid-view {
+    padding: 0;
+}
+
+.mui-web-scope .grid-view .summary {
+    background: var(--mui-web-palette-surface);
+    border: 0;
+    box-shadow: none;
+    color: var(--mui-web-palette-text-secondary);
+    padding: var(--mui-web-spacing-15) var(--mui-web-spacing-2) var(--mui-web-spacing-05);
+}
+
+.mui-web-scope .table {
+    background: var(--mui-web-palette-surface);
+    margin-bottom: 0;
+}
+
+.mui-web-scope .grid-view table,
+.mui-web-scope .table-responsive table,
+.mui-web-scope .kv-grid-container table,
+.mui-web-scope .kv-grid-wrapper table {
+    min-width: max(100%, 720px);
+}
+
+.mui-web-scope .table > thead > tr > th,
+.mui-web-scope .kv-grid-table > thead > tr > th {
+    background: var(--mui-web-palette-surface-soft);
+    border-bottom: 1px solid var(--mui-web-palette-divider);
+    color: var(--mui-web-palette-text-secondary);
+    font-size: var(--mui-web-font-size-caption);
+    font-weight: var(--mui-web-font-weight-bold);
+    letter-spacing: 0;
+    text-transform: none;
+    vertical-align: middle;
+}
+
+.mui-web-scope .table > tbody > tr > td,
+.mui-web-scope .table > tbody > tr > th {
+    border-top: 1px solid rgba(15, 23, 42, 0.08);
+    vertical-align: middle;
+}
+
+.mui-web-scope .table-hover > tbody > tr:hover,
+.mui-web-scope .table-striped > tbody > tr:nth-of-type(odd):hover {
+    background: var(--mui-web-palette-action-hover);
+}
+
+.mui-web-scope .table-striped > tbody > tr:nth-of-type(odd) {
+    background-color: #fbfefd;
+}
+
+.mui-web-scope .pagination > li > a,
+.mui-web-scope .pagination > li > span {
+    border-color: var(--mui-web-palette-divider);
+    color: var(--mui-web-palette-primary-main);
+}
+
+.mui-web-scope .pagination > .active > a,
+.mui-web-scope .pagination > .active > span {
+    background: var(--mui-web-palette-primary-main);
+    border-color: var(--mui-web-palette-primary-main);
+}
+
+.mui-web-scope .dhdc-empty-state,
+.mui-web-scope .empty {
+    background: var(--mui-web-palette-surface-soft);
+    border: 1px dashed rgba(20, 163, 127, 0.34);
+    border-radius: var(--mui-web-radius-lg);
+    color: var(--mui-web-palette-text-secondary);
+    padding: var(--mui-web-spacing-3);
+    text-align: center;
+}
+
+.mui-web-scope .dhdc-status-pill,
+.mui-web-scope .label {
+    border-radius: var(--mui-web-radius-pill);
+    font-weight: var(--mui-web-font-weight-bold);
+    letter-spacing: 0;
+}
+
+.mui-web-scope .dhdc-status-pill {
+    display: inline-flex;
+    align-items: center;
+    min-height: 24px;
+    padding: 3px 10px;
+}
+
+.mui-web-scope .dhdc-status-ok {
+    background: var(--mui-web-palette-success-light);
+    color: var(--mui-web-palette-success-dark);
+}
+
+.mui-web-scope .dhdc-status-running {
+    background: var(--mui-web-primary-50);
+    color: var(--mui-web-palette-primary-dark);
+}
+
+.mui-web-scope .dhdc-status-pending {
+    background: var(--mui-web-palette-warning-light);
+    color: var(--mui-web-palette-warning-dark);
+}
+
+.mui-web-scope .dhdc-status-error {
+    background: var(--mui-web-palette-error-light);
+    color: var(--mui-web-palette-error-dark);
+}
+
+.mui-web-scope .title {
+    background: var(--mui-web-palette-primary-main) !important;
+    box-shadow: var(--mui-web-elevation-2);
+    font-weight: var(--mui-web-font-weight-bold);
+    letter-spacing: 0;
+    z-index: 1000;
+}
+
+.mui-web-scope .show-latlng {
+    padding: var(--mui-web-spacing-1);
+}
+
+.mui-web-scope .show-latlng input {
+    border: 1px solid var(--mui-web-palette-divider);
+    border-radius: var(--mui-web-radius-md);
+    box-shadow: var(--mui-web-elevation-1);
+    min-height: 36px;
+    padding: 6px 10px;
+}
+
+.mui-web-scope .mui-web-report-shell {
+    margin-top: var(--mui-web-spacing-3);
+}
+
+.mui-web-scope .mui-web-report-note {
+    color: var(--mui-web-palette-text-secondary);
+    font-size: var(--mui-web-font-size-caption);
+    padding-bottom: var(--mui-web-spacing-2);
+}
+
+.mui-web-scope .dhdc-section-title {
+    color: var(--mui-web-palette-text-primary);
+    font-size: var(--mui-web-font-size-h6);
+    font-weight: var(--mui-web-font-weight-bold);
+    margin-bottom: var(--mui-web-spacing-2);
+}
+
+.mui-web-scope .dhdc-grid-shell,
+.mui-web-scope .dhdc-chart-shell,
+.mui-web-scope .sqlquery-console,
+.mui-web-scope .ehr-search-panel,
+.mui-web-scope .ehr-profile-panel,
+.mui-web-scope .ehr-visit-panel,
+.mui-web-scope .ehr-detail-panel {
+    max-width: 100%;
+}
+
+.mui-web-scope .dhdc-panel,
+.mui-web-scope .hdc-report-meta {
+    overflow-wrap: anywhere;
+}
+
+.mui-web-scope .dhdc-grid-shell {
+    min-width: 0;
+    overflow-x: auto;
+}
+
+.mui-web-scope .dhdc-grid-shell .panel-title,
+.mui-web-scope .dhdc-grid-shell .kv-panel-before,
+.mui-web-scope .dhdc-grid-shell .kv-panel-after,
+.mui-web-scope .dhdc-error-detail {
+    overflow-wrap: anywhere;
+    white-space: normal;
+}
+
+.mui-web-scope .dhdc-error-detail pre {
+    max-width: 100%;
+    overflow-x: auto;
+    white-space: pre-wrap;
+}
+
+.mui-web-scope .dhdc-chart-shell {
+    overflow: hidden;
+}
+
+.mui-web-scope .dhdc-chart-shell .highcharts-container,
+.mui-web-scope .dhdc-chart-shell svg {
+    max-width: 100%;
+}
+
+.mui-web-scope .dhdc-chart-shell #pyramid,
+.mui-web-scope .dhdc-chart-shell #pyramid *,
+.mui-web-scope .dhdc-chart-shell .highcharts-container:focus,
+.mui-web-scope .dhdc-chart-shell .highcharts-root,
+.mui-web-scope .dhdc-chart-shell svg:focus {
+    outline: none !important;
+}
+
+.mui-web-scope .dhdc-filter-row {
+    align-items: center;
+}
+
+.mui-web-scope .dhdc-inline-control {
+    display: inline-block;
+    max-width: 360px;
+    min-width: 220px;
+    width: auto;
+}
+
+.mui-web-scope .sqlquery-editor {
+    font-family: Consolas, "Courier New", monospace;
+    min-height: 180px;
+    resize: vertical;
+}
+
+.mui-web-scope .sqlquery-run-form,
+.mui-web-scope .sqlquery-run-inline {
+    display: inline-block;
+    margin: 0;
+}
+
+.mui-web-scope .ehr-profile-card {
+    align-items: center;
+    display: flex;
+    gap: var(--mui-web-spacing-3);
+}
+
+.mui-web-scope .ehr-avatar img {
+    border: 4px solid rgba(20, 163, 127, 0.16);
+    box-shadow: var(--mui-web-elevation-2);
+}
+
+.mui-web-scope .ehr-profile-name {
+    color: var(--mui-web-palette-text-primary);
+    font-size: var(--mui-web-font-size-h5);
+    font-weight: var(--mui-web-font-weight-bold);
+}
+
+.mui-web-scope .ehr-profile-meta {
+    color: var(--mui-web-palette-text-secondary);
+    margin-top: var(--mui-web-spacing-05);
+}
+
+.mui-web-scope .ehr-workspace {
+    align-items: flex-start;
+}
+
+.mui-web-scope .ehr-clinical-summary {
+    display: grid;
+    gap: var(--mui-web-spacing-15);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-bottom: var(--mui-web-spacing-2);
+}
+
+.mui-web-scope .ehr-clinical-item {
+    background: var(--mui-web-palette-surface-soft);
+    border: 1px solid var(--mui-web-palette-divider);
+    border-radius: var(--mui-web-radius-lg);
+    padding: var(--mui-web-spacing-15);
+}
+
+.mui-web-scope .dhdc-link-grid {
+    display: grid;
+    gap: var(--mui-web-spacing-15);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.mui-web-scope .dhdc-app-grid {
+    display: grid;
+    gap: var(--mui-web-spacing-2);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.mui-web-scope .dhdc-link-card,
+.mui-web-scope .dhdc-report-row,
+.mui-web-scope .dhdc-app-card {
+    align-items: center;
+    display: flex;
+    gap: var(--mui-web-spacing-15);
+    min-width: 0;
+    padding: var(--mui-web-spacing-15);
+}
+
+.mui-web-scope .dhdc-link-content,
+.mui-web-scope .dhdc-report-main {
+    min-width: 0;
+}
+
+.mui-web-scope .dhdc-link-title {
+    color: var(--mui-web-palette-primary-dark);
+    font-weight: var(--mui-web-font-weight-bold);
+    overflow-wrap: anywhere;
+}
+
+.mui-web-scope .dhdc-link-title:hover,
+.mui-web-scope .dhdc-link-title:focus {
+    color: var(--mui-web-palette-primary-main);
+}
+
+.mui-web-scope .dhdc-report-list {
+    display: grid;
+    gap: var(--mui-web-spacing-1);
+}
+
+.mui-web-scope .dhdc-report-action {
+    margin-left: auto;
+    white-space: nowrap;
+}
+
+.mui-web-scope .dhdc-report-number,
+.mui-web-scope .dhdc-link-icon {
+    align-items: center;
+    display: inline-flex;
+    flex: 0 0 auto;
+    height: 40px;
+    justify-content: center;
+    width: 40px;
+}
+
+.mui-web-scope .table > thead > tr > th a,
+.mui-web-scope .kv-grid-table > thead > tr > th a {
+    color: inherit;
+}
+
+.mui-web-scope .table > tbody > tr.is-selected,
+.mui-web-scope .table > tbody > tr.active > td,
+.mui-web-scope .table > tbody > tr.active > th {
+    background: var(--mui-web-palette-action-selected);
+}
+
+@keyframes mui-web-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.mui-web-scope .ehr-clinical-label {
+    color: var(--mui-web-palette-text-secondary);
+    display: block;
+    font-size: var(--mui-web-font-size-caption);
+    margin-bottom: var(--mui-web-spacing-05);
+}
+
+.mui-web-scope.mui-web-map-body .info {
+    border: 1px solid var(--mui-web-palette-divider);
+    border-radius: var(--mui-web-radius-lg);
+    box-shadow: var(--mui-web-elevation-4);
+}
+
+@media (max-width: 900px) {
+    .mui-web-scope .dhdc-stat-grid,
+    .mui-web-scope .dhdc-app-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .mui-web-scope .dhdc-link-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 767px) {
+    .mui-web-scope .dhdc-page-header {
+        display: block;
+    }
+
+    .mui-web-scope .dhdc-toolbar,
+    .mui-web-scope .dhdc-filter-panel {
+        justify-content: flex-start;
+        margin-top: var(--mui-web-spacing-1);
+    }
+
+    .mui-web-scope .dhdc-stat-grid,
+    .mui-web-scope .dhdc-app-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .mui-web-scope .dhdc-login-shell {
+        grid-template-columns: 1fr;
+        margin-top: var(--mui-web-spacing-1);
+    }
+
+    .mui-web-scope .dhdc-inline-control {
+        max-width: 100%;
+        width: 100%;
+    }
+
+    .mui-web-scope .ehr-profile-card {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .mui-web-scope .ehr-clinical-summary {
+        grid-template-columns: 1fr;
+    }
+
+    /* Keep Yii's development toolbar from adding page-level horizontal scroll. */
+    .yii-debug-toolbar,
+    .yii-debug-toolbar_position_bottom {
+        display: none !important;
+    }
+}
