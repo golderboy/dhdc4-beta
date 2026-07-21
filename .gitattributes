@@ -8,6 +8,17 @@
 *.sql text eol=lf
 *.bat text eol=crlf
 
+# Preserve upstream formatting in reviewed third-party map assets.
+/frontend/web/lib/map/vendor/** -whitespace
+
 # The legacy self-updater is intentionally excluded from release archives.
 /update export-ignore
 /update/** export-ignore
+
+# Development-only files are not part of the production artifact.
+/.github export-ignore
+/common/tests export-ignore
+/common/codeception.yml export-ignore
+/common/config/test.php export-ignore
+/common/config/test-ci.php export-ignore
+/environments/dev export-ignore

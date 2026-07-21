@@ -1,6 +1,10 @@
 # Replace hostnames and certificate paths before enabling this file.
 # Required modules: rewrite, ssl, headers
 
+ServerTokens Prod
+ServerSignature Off
+TraceEnable Off
+
 <VirtualHost *:80>
     ServerName dhdc.example.go.th
     Redirect permanent / https://dhdc.example.go.th/
@@ -23,6 +27,9 @@
     SSLEngine on
     SSLCertificateFile "/etc/pki/tls/certs/dhdc.crt"
     SSLCertificateKeyFile "/etc/pki/tls/private/dhdc.key"
+    SSLProtocol -all +TLSv1.2 +TLSv1.3
+    SSLCipherSuite HIGH:!aNULL:!MD5:!3DES
+    SSLHonorCipherOrder on
 
     <Directory "/var/www/dhdc4/frontend/web">
         Options -Indexes
@@ -46,11 +53,21 @@
     SSLEngine on
     SSLCertificateFile "/etc/pki/tls/certs/dhdc-admin.crt"
     SSLCertificateKeyFile "/etc/pki/tls/private/dhdc-admin.key"
+    SSLProtocol -all +TLSv1.2 +TLSv1.3
+    SSLCipherSuite HIGH:!aNULL:!MD5:!3DES
+    SSLHonorCipherOrder on
 
     <Directory "/var/www/dhdc4/backend/web">
         Options -Indexes
         AllowOverride All
-        Require all granted
+        # Keep the administration site behind the hospital network or VPN.
+        # Replace these ranges with the approved production source networks.
+        <RequireAny>
+            Require local
+            Require ip 10.0.0.0/8
+            Require ip 172.16.0.0/12
+            Require ip 192.168.0.0/16
+        </RequireAny>
     </Directory>
 
     Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"

@@ -1,14 +1,23 @@
+<?php
+
+use yii\helpers\Json;
+use yii\helpers\Url;
+
+$web = \Yii::getAlias('@web');
+$jsonTambonRoute = Url::to(['json-tambon']);
+?>
 <!DOCTYPE html>
 <html>
     <head>
         <meta charset=utf-8 />
         <title>ความหนาแน่นประชากรรายตำบล</title>
         <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
-        <link rel="stylesheet" href="<?= Yii::$app->request->baseUrl ?>/css/mui-web/tokens.css" />
-        <link rel="stylesheet" href="<?= Yii::$app->request->baseUrl ?>/css/mui-web/layout.css" />
-        <link rel="stylesheet" href="<?= Yii::$app->request->baseUrl ?>/css/mui-web/components.css" />
-        <script src='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.js'></script>
-        <link href='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.css' rel='stylesheet' />
+        <link rel="stylesheet" href="<?= $web ?>/css/mui-web/tokens.css" />
+        <link rel="stylesheet" href="<?= $web ?>/css/mui-web/layout.css" />
+        <link rel="stylesheet" href="<?= $web ?>/css/mui-web/components.css" />
+        <script src="<?= $web ?>/lib/map/vendor/mapbox-3.1.1/mapbox.js"></script>
+        <link href="<?= $web ?>/lib/map/vendor/mapbox-3.1.1/mapbox.css" rel="stylesheet" />
+        <script src="<?= $web ?>/lib/map/vendor/turf-compat-7.3.5/turf-compat.min.js"></script>
 
         <style>
             body { margin:0; padding:0; }
@@ -19,17 +28,17 @@
             .legend i { width: 18px; height: 18px; float: left; margin-right: 8px; opacity: 0.7; }
         </style>
     </head>
-    <?php
-
-    use yii\helpers\Url;
-
-$json_tabbon_route = Url::to(['json-tambon']);
-    ?>
     <body class="mui-web-scope mui-web-map-body" data-mui-web-color-scheme="light">
-        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
-        <script src='https://npmcdn.com/@turf/turf/turf.min.js'></script> 
         <div id='map'></div>
         <script>
+            var jsonTambonRoute = <?= Json::htmlEncode($jsonTambonRoute) ?>;
+
+            function escapeHtml(value) {
+                var element = document.createElement('div');
+                element.textContent = value == null ? '' : String(value);
+                return element.innerHTML;
+            }
+
             var map = L.mapbox.map('map', null).setView([16, 100], 8);
             L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '&copy; OpenStreetMap contributors',
@@ -37,12 +46,12 @@ $json_tabbon_route = Url::to(['json-tambon']);
             }).addTo(map);
 
             var tambonLayer = L.mapbox.featureLayer();
-            tambonLayer.loadURL('<?= $json_tabbon_route ?>').on('ready', function (e) {
+            tambonLayer.loadURL(jsonTambonRoute).on('ready', function (e) {
                 var allLayer = e.target;
                 map.fitBounds(allLayer.getBounds());
                 allLayer.eachLayer(function (layer) {
-                    var tam_name = layer.feature.properties.TAM_NAME;
-                    var pop = layer.feature.properties.POP;
+                    var tam_name = escapeHtml(layer.feature.properties.TAM_NAME);
+                    var pop = Number(layer.feature.properties.POP) || 0;
                     var area_km = turf.area(layer.feature) / 1000000;
                     var popup = "<h3>ต." + tam_name + "</h3>  มีพื้นที่ <b>" + area_km.toFixed(2) + "</b> ตร.กม.";
                     popup += "<p> มีประชากรอาสัยอยู่จำนวน <b>" + pop + "</b> คน";

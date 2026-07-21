@@ -1,12 +1,33 @@
 <?php
 
 use yii\bootstrap\Html;
+use yii\helpers\Json;
+
+$smartcardBaseUrl = trim((string) getenv('DHDC_SMARTCARD_BASE_URL'));
+if ($smartcardBaseUrl === '') {
+    $smartcardBaseUrl = 'http://127.0.0.1:8080/smartcard';
+}
+
+$smartcardUrl = parse_url($smartcardBaseUrl);
+$smartcardScheme = strtolower((string) ($smartcardUrl['scheme'] ?? ''));
+$smartcardHost = strtolower((string) ($smartcardUrl['host'] ?? ''));
+$loopbackHosts = ['localhost', '127.0.0.1', '::1'];
+$isSecureEndpoint = $smartcardScheme === 'https';
+$isLoopbackEndpoint = $smartcardScheme === 'http' && in_array($smartcardHost, $loopbackHosts, true);
+
+if (!$isSecureEndpoint && !$isLoopbackEndpoint) {
+    throw new \RuntimeException('DHDC_SMARTCARD_BASE_URL must use HTTPS or an HTTP loopback host.');
+}
+
+$smartcardBaseUrl = rtrim($smartcardBaseUrl, '/');
+$smartcardPictureUrl = $smartcardBaseUrl . '/picture/';
+$smartcardDataUrl = $smartcardBaseUrl . '/data/';
 
 $this->params['breadcrumbs'][] = "ระบบการตรวจสอบสิทธิด้วยบัตรประชาชน"
 ?>
 <div class="smcread-default-index">
     <div style="margin-bottom: 5px">
-        <img src="http://localhost:8080/smartcard/picture/" width="250" height="250"/>
+        <img src="<?= Html::encode($smartcardPictureUrl) ?>" width="250" height="250" alt="Smart card portrait"/>
     </div>
     <div class="input-group">
         <input type="password" class="form-control" placeholder="รหัสยืนยัน" name="pass" id="pass" autocomplete="off">
@@ -17,12 +38,13 @@ $this->params['breadcrumbs'][] = "ระบบการตรวจสอบส�
 </div>
 
 <?php
+$smartcardDataUrlJson = Json::htmlEncode($smartcardDataUrl);
 $js = <<<JS
    
     $.ajaxSetup({
         async: false
     });
-    var url = 'http://localhost:8080/smartcard/data/';
+    var url = {$smartcardDataUrlJson};
     $('#btn-go').click(function(e){
         var pass = $('#pass').val();
         var data = getCard(url);

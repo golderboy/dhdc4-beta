@@ -7,6 +7,7 @@
     "verify:security": "php tools/verify-owasp-security.php",
     "verify:production-readiness": "php tools/verify-production-readiness.php",
     "verify:http-security": "php tools/verify-http-security.php",
+    "verify:map-runtime": "node tools/verify-map-runtime.js",
     "verify:hdcex-report-pages": "node tools/verify-hdc-report-pages.js --module=hdcex --limit=12 --viewports=mobile,desktop --auth-session=auto",
     "verify:hdcex-report-pages:full": "node tools/verify-hdc-report-pages.js --module=hdcex --auth-session=auto",
     "verify:hdc-report-pages": "node tools/verify-hdc-report-pages.js --limit=12 --viewports=mobile,desktop --auth-session=auto",

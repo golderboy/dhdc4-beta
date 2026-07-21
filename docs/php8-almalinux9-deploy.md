@@ -56,7 +56,20 @@ DHDC_DB_PASSWORD='<load-from-secret-store>'
 DHDC_MAILER_DSN='smtps://user:password@smtp.example.go.th:465'
 DHDC_FRONTEND_COOKIE_VALIDATION_KEY='<generate-at-least-32-random-characters>'
 DHDC_BACKEND_COOKIE_VALIDATION_KEY='<generate-a-different-random-key>'
+DHDC_GOOGLE_MAPS_API_KEY='<new-restricted-browser-key>'
+# Optional map services; omit a layer when no verified HTTPS endpoint is available.
+DHDC_RAIN_RADAR_BASE_URL='https://maps.example.go.th/radar'
+DHDC_FLOOD_WMS_BASE_URL='https://maps.example.go.th/flood/wms'
+DHDC_FLOOD_PERCENT_WMS_BASE_URL='https://maps.example.go.th/flood-percent/wms'
+# Smart-card service must use HTTPS, or HTTP on localhost/127.0.0.1/::1 only.
+DHDC_SMARTCARD_BASE_URL='http://127.0.0.1:8080/smartcard'
 ```
+
+Google Maps key ต้องเป็น key ใหม่หลังเพิกถอน key ที่เคยฝังใน source code และต้องจำกัดทั้ง HTTP referrer ของ frontend จริงและ API scope ที่ระบบใช้ ห้ามนำ key เดิมกลับมาใช้ ส่วนชั้นข้อมูลแผนที่ที่ไม่มี HTTPS จะถูกปิดโดยอัตโนมัติแทนการโหลด mixed content
+
+การ rewrite และ force-push ทำให้ branch/tag หลักไม่อ้างถึงประวัติเก่า แต่ clone, fork, pull request และ cached view อาจยังเก็บ object เดิม ผู้ร่วมพัฒนาต้องทิ้ง clone เก่าหรือ rebase จากประวัติใหม่ และเจ้าของ repository ต้องติดต่อ GitHub Support หากต้องล้าง reference/cached view ที่ยังอ้างถึง secret
+
+ระบบตั้งค่า application log ไม่ให้บันทึก `$_GET`, `$_POST`, `$_COOKIE`, `$_SESSION` และ `$_SERVER` อัตโนมัติแล้ว หากเพิ่ม log เองต้องไม่บันทึกรหัสผ่าน token cookie เลขบัตรประชาชน หรือข้อมูลสุขภาพทั้งก้อน
 
 บัญชี `DHDC_DB_USER` ต้องเป็น service account เฉพาะฐานข้อมูล DHDC4 และต้องไม่มี global privilege หรือ `GRANT OPTION`
 ใช้ `docs/database-service-account.sql.example` เป็น template สำหรับสร้างบัญชี จากนั้นตรวจ `SHOW GRANTS` ก่อนเปิดระบบ
@@ -71,6 +84,8 @@ composer install --no-dev --classmap-authoritative --no-interaction
 ## Apache / PHP
 
 Production ต้องเปิดผ่าน HTTPS เท่านั้น ใช้ `docs/apache-dhdc4.conf.example` เป็น template แล้วแทน hostname และ certificate path ให้ตรงกับเครื่องจริง ห้ามตั้ง `DocumentRoot` เป็น `/var/www/dhdc4`
+
+Template บังคับ TLS 1.2/1.3, ซ่อนรายละเอียดเวอร์ชัน Apache, redirect HTTP ไป HTTPS และจำกัด backend ไว้ที่ loopback/private network สำหรับ production ต้องแทน private ranges ด้วย CIDR ของเครือข่ายโรงพยาบาล/VPN ที่อนุมัติจริงก่อนเปิดบริการ
 
 ตัวอย่าง virtual host:
 
@@ -168,6 +183,13 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
 ```
 
 ## Release Gate
+
+สร้างไฟล์ส่งมอบจาก annotated tag ที่ผ่าน strict gate ด้วยคำสั่งต่อไปนี้ สคริปต์จะตัด updater, test และ development environment ออก ติดตั้ง Composer แบบ `--no-dev` ตรวจ readiness ภายในแพ็กเกจ และสร้างไฟล์ SHA-256 คู่กับ ZIP:
+
+```powershell
+npm run verify:map-runtime
+.\tools\build-release.ps1 -Tag v4.0.0
+```
 
 ก่อนส่งงานหรือ deploy ให้รัน gate รวมนี้เป็นคำสั่งหลัก โดยส่ง credential ผ่าน parameter และไม่บันทึกรหัสผ่านลงไฟล์:
 

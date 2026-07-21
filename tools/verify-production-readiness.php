@@ -4,6 +4,7 @@ $root = dirname(__DIR__);
 $failures = [];
 $warnings = [];
 $strictRelease = in_array('--strict-release', $argv, true);
+$releaseArtifact = in_array('--release-artifact', $argv, true);
 
 function readFileContents(string $root, string $relative): string
 {
@@ -68,7 +69,11 @@ try {
     $commonMain = readFileContents($root, 'common/config/main.php');
     $commonMainLocal = readFileContents($root, 'common/config/main-local.php');
     $envProdCommonMainLocal = readFileContents($root, 'environments/prod/common/config/main-local.php');
-    $envDevCommonMainLocal = readFileContents($root, 'environments/dev/common/config/main-local.php');
+    $envDevCommonMainLocal = $releaseArtifact
+        ? ''
+        : readFileContents($root, 'environments/dev/common/config/main-local.php');
+    $apacheTemplate = readFileContents($root, 'docs/apache-dhdc4.conf.example');
+    $gitAttributes = readFileContents($root, '.gitattributes');
     $hdcsqlController = readFileContents($root, 'backend/modules/hdcreportsetup/controllers/HdcsqlController.php');
     $hdcsqlForm = readFileContents($root, 'backend/modules/hdcreportsetup/views/hdcsql/_form.php');
     $importAjax = readFileContents($root, 'frontend/modules/import/controllers/AjaxController.php');
@@ -90,7 +95,7 @@ try {
     $packageJsonRaw = readFileContents($root, 'package.json');
 } catch (RuntimeException $exception) {
     addFailure($failures, $exception->getMessage());
-    $frontendIndex = $backendIndex = $frontendMain = $backendMain = $frontendMainLocal = $backendMainLocal = '';
+    $frontendIndex = $backendIndex = $frontendMain = $backendMain = $frontendMainLocal = $backendMainLocal = $apacheTemplate = $gitAttributes = '';
     $commonMain = $commonMainLocal = $envProdCommonMainLocal = $envDevCommonMainLocal = '';
     $hdcsqlController = $hdcsqlForm = '';
     $importAjax = $import2Ajax = $gisJsonController = $hrpJsonController = $tbmapsJsonController = '';
@@ -128,8 +133,14 @@ assertContains('backend must send CSP', $backendMain, 'Content-Security-Policy',
 assertContains('backend must send X-Content-Type-Options', $backendMain, 'X-Content-Type-Options', $failures);
 assertContains('backend session cookie must be HttpOnly', $backendMain, "'httpOnly' => true", $failures);
 assertContains('backend session cookie must set SameSite', $backendMain, 'SAME_SITE_LAX', $failures);
+assertContains('frontend logs must omit request superglobals', $frontendMain, "'logVars' => []", $failures);
+assertContains('backend logs must omit request superglobals', $backendMain, "'logVars' => []", $failures);
 assertContains('common identity cookie must be HttpOnly', $commonMain, "'httpOnly' => true", $failures);
 assertContains('common identity cookie must set SameSite', $commonMain, 'SAME_SITE_LAX', $failures);
+assertContains('Apache template must allow TLS 1.2 and 1.3 only', $apacheTemplate, 'SSLProtocol -all +TLSv1.2 +TLSv1.3', $failures);
+assertContains('Apache template must hide server details', $apacheTemplate, 'ServerTokens Prod', $failures);
+assertContains('Apache template must restrict backend access', $apacheTemplate, 'Require ip 10.0.0.0/8', $failures);
+assertContains('release archive must exclude dev environment', $gitAttributes, '/environments/dev export-ignore', $failures);
 
 assertNotContains('HDC report setup must keep CSRF enabled', $hdcsqlController, 'enableCsrfValidation = false', $failures);
 assertContains('HDC report setup create/update must use bound params', $hdcsqlController, ':report_name', $failures);
@@ -173,10 +184,14 @@ assertContains('Backend QC truncate must require POST', $execQcController, "'tru
 foreach ([
     'common/config/main-local.php' => $commonMainLocal,
     'environments/prod/common/config/main-local.php' => $envProdCommonMainLocal,
-    'environments/dev/common/config/main-local.php' => $envDevCommonMainLocal,
 ] as $file => $contents) {
     assertContains("$file must use SymfonyMailer", $contents, 'yii\symfonymailer\Mailer', $failures);
     assertNotContains("$file must not use SwiftMailer as active app mailer", $contents, 'yii\swiftmailer\Mailer', $failures);
+}
+
+if (!$releaseArtifact) {
+    assertContains('environments/dev/common/config/main-local.php must use SymfonyMailer', $envDevCommonMainLocal, 'yii\symfonymailer\Mailer', $failures);
+    assertNotContains('environments/dev/common/config/main-local.php must not use SwiftMailer as active app mailer', $envDevCommonMainLocal, 'yii\swiftmailer\Mailer', $failures);
 }
 
 $composerJson = json_decode($composerJsonRaw, true);
@@ -198,8 +213,12 @@ if (!is_array($composerJson)) {
 $packageJson = json_decode($packageJsonRaw, true);
 if (!is_array($packageJson)) {
     addFailure($failures, 'package.json is not valid JSON');
-} elseif (!isset($packageJson['scripts']['verify:production-readiness'])) {
-    addFailure($failures, 'package.json must expose verify:production-readiness');
+} else {
+    foreach (['verify:production-readiness', 'verify:map-runtime'] as $script) {
+        if (!isset($packageJson['scripts'][$script])) {
+            addFailure($failures, "package.json must expose $script");
+        }
+    }
 }
 
 if (filter_var(getenv('YII_DEBUG'), FILTER_VALIDATE_BOOLEAN)) {
@@ -211,7 +230,20 @@ if (filter_var(getenv('DHDC_ALLOW_PHPINFO'), FILTER_VALIDATE_BOOLEAN)) {
 }
 
 runCheck('Production initializer verifier', 'php ' . escapeshellarg($root . DIRECTORY_SEPARATOR . 'tools' . DIRECTORY_SEPARATOR . 'verify-production-init.php'), $failures, $warnings);
-runCheck('OWASP regression verifier', 'php ' . escapeshellarg($root . DIRECTORY_SEPARATOR . 'tools' . DIRECTORY_SEPARATOR . 'verify-owasp-security.php'), $failures, $warnings);
+if (!$releaseArtifact) {
+    runCheck(
+        'Production-only initializer verifier',
+        'php ' . escapeshellarg($root . DIRECTORY_SEPARATOR . 'tools' . DIRECTORY_SEPARATOR . 'verify-production-init.php') . ' --production-only',
+        $failures,
+        $warnings
+    );
+}
+runCheck('Map view render verifier', 'php ' . escapeshellarg($root . DIRECTORY_SEPARATOR . 'tools' . DIRECTORY_SEPARATOR . 'verify-map-view-render.php'), $failures, $warnings);
+$owaspCommand = 'php ' . escapeshellarg($root . DIRECTORY_SEPARATOR . 'tools' . DIRECTORY_SEPARATOR . 'verify-owasp-security.php');
+if ($releaseArtifact) {
+    $owaspCommand .= ' --release-artifact';
+}
+runCheck('OWASP regression verifier', $owaspCommand, $failures, $warnings);
 runCheck('Composer vulnerability audit', 'composer audit --abandoned=ignore --format=plain', $failures, $warnings);
 runCheck('NPM vulnerability audit', 'npm audit --audit-level=moderate', $failures, $warnings);
 

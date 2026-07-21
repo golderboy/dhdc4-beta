@@ -1,9 +1,28 @@
 <?php
 
 use yii\helpers\Url;
+use yii\helpers\Html;
+use yii\helpers\Json;
 use yii\bootstrap\Modal;
 
 $web = \Yii::getAlias('@web');
+$googleMapsApiKey = trim((string) getenv('DHDC_GOOGLE_MAPS_API_KEY'));
+$secureServiceUrl = static function (string $environmentName): string {
+    $value = trim((string) getenv($environmentName));
+    if ($value === '') {
+        return '';
+    }
+
+    $parts = parse_url($value);
+    return filter_var($value, FILTER_VALIDATE_URL) !== false
+        && strtolower((string) ($parts['scheme'] ?? '')) === 'https'
+        && (string) ($parts['host'] ?? '') !== ''
+        ? rtrim($value, '/')
+        : '';
+};
+$rainRadarBaseUrl = $secureServiceUrl('DHDC_RAIN_RADAR_BASE_URL');
+$floodWmsBaseUrl = $secureServiceUrl('DHDC_FLOOD_WMS_BASE_URL');
+$floodPercentWmsBaseUrl = $secureServiceUrl('DHDC_FLOOD_PERCENT_WMS_BASE_URL');
 ?>
 <!DOCTYPE html>
 <html>
@@ -14,32 +33,35 @@ $web = \Yii::getAlias('@web');
         <link rel="stylesheet" href="<?= $web ?>/css/mui-web/tokens.css" />
         <link rel="stylesheet" href="<?= $web ?>/css/mui-web/layout.css" />
         <link rel="stylesheet" href="<?= $web ?>/css/mui-web/components.css" />
-        <script src="//ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
-        <script src="//maps.googleapis.com/maps/api/js?key=REDACTED_SECRET_b9cff948fcda9a7e"></script>
-        <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
-        <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+        <script src="<?= $web ?>/lib/map/vendor/jquery-3.7.1/jquery.min.js"></script>
+        <?php if ($googleMapsApiKey !== ''): ?>
+            <script src="https://maps.googleapis.com/maps/api/js?key=<?= Html::encode(rawurlencode($googleMapsApiKey)) ?>"></script>
+        <?php endif; ?>
+        <link rel="stylesheet" href="<?= $web ?>/lib/map/vendor/bootstrap-3.4.1/dist/css/bootstrap.min.css">
+        <script src="<?= $web ?>/lib/map/vendor/bootstrap-3.4.1/js/transition.js"></script>
+        <script src="<?= $web ?>/lib/map/vendor/bootstrap-3.4.1/js/modal.js"></script>
 
-        <link href='//api.mapbox.com/mapbox.js/v3.1.1/mapbox.css' rel='stylesheet' />
-        <script src='//api.mapbox.com/mapbox.js/v3.1.1/mapbox.js'></script>
+        <link href="<?= $web ?>/lib/map/vendor/mapbox-3.1.1/mapbox.css" rel="stylesheet" />
+        <script src="<?= $web ?>/lib/map/vendor/mapbox-3.1.1/mapbox.js"></script>
 
-        <script src='//api.mapbox.com/mapbox.js/plugins/leaflet-draw/v0.4.10/leaflet.draw.js'></script>
-        <link href='//api.mapbox.com/mapbox.js/plugins/leaflet-draw/v0.4.10/leaflet.draw.css' rel='stylesheet' />
+        <script src="<?= $web ?>/lib/map/vendor/leaflet-draw-0.4.10/dist/leaflet.draw.js"></script>
+        <link href="<?= $web ?>/lib/map/vendor/leaflet-draw-0.4.10/dist/leaflet.draw.css" rel="stylesheet" />
 
-        <script src='//api.mapbox.com/mapbox.js/plugins/leaflet-markercluster/v1.0.0/leaflet.markercluster.js'></script>
-        <link href='//api.mapbox.com/mapbox.js/plugins/leaflet-markercluster/v1.0.0/MarkerCluster.css' rel='stylesheet' />
-        <link href='//api.mapbox.com/mapbox.js/plugins/leaflet-markercluster/v1.0.0/MarkerCluster.Default.css' rel='stylesheet' />
+        <script src="<?= $web ?>/lib/map/vendor/leaflet-markercluster-1.0.0/dist/leaflet.markercluster.js"></script>
+        <link href="<?= $web ?>/lib/map/vendor/leaflet-markercluster-1.0.0/dist/MarkerCluster.css" rel="stylesheet" />
+        <link href="<?= $web ?>/lib/map/vendor/leaflet-markercluster-1.0.0/dist/MarkerCluster.Default.css" rel="stylesheet" />
 
-        <script src='https://api.mapbox.com/mapbox.js/plugins/leaflet-locatecontrol/v0.43.0/L.Control.Locate.min.js'></script>
-        <link href='https://api.mapbox.com/mapbox.js/plugins/leaflet-locatecontrol/v0.43.0/L.Control.Locate.mapbox.css' rel='stylesheet' />
+        <script src="<?= $web ?>/lib/map/vendor/leaflet-locatecontrol-0.43.0/dist/L.Control.Locate.min.js"></script>
+        <link href="<?= $web ?>/lib/map/vendor/leaflet-locatecontrol-0.43.0/dist/L.Control.Locate.mapbox.min.css" rel="stylesheet" />
         <!--[if lt IE 9]>
-          <link href='https://api.mapbox.com/mapbox.js/plugins/leaflet-locatecontrol/v0.43.0/L.Control.Locate.ie.css' rel='stylesheet' />
+          <link href="<?= $web ?>/lib/map/vendor/leaflet-locatecontrol-0.43.0/dist/L.Control.Locate.ie.min.css" rel="stylesheet" />
         <![endif]-->
-        <link href='https://api.mapbox.com/mapbox.js/plugins/leaflet-locatecontrol/v0.43.0/css/font-awesome.min.css' rel='stylesheet' />
+        <link href="<?= $web ?>/lib/map/vendor/font-awesome-4.7.0/css/font-awesome.min.css" rel="stylesheet" />
 
         <script src="<?= $web ?>/js/Leaflet.Control.Custom.js"></script> 
 
-        <link href="http://aratcliffe.github.io/Leaflet.contextmenu/dist/leaflet.contextmenu.css" rel="stylesheet"/>
-        <script src='http://aratcliffe.github.io/Leaflet.contextmenu/dist/leaflet.contextmenu.js'></script>
+        <link href="<?= $web ?>/lib/map/leaflet-contextmenu/leaflet.contextmenu.min.css" rel="stylesheet"/>
+        <script src="<?= $web ?>/lib/map/leaflet-contextmenu/leaflet.contextmenu.min.js"></script>
 
         <style>
             body { margin:0; padding:0; }
@@ -68,7 +90,7 @@ $web = \Yii::getAlias('@web');
         </style>
     </head>
     <body class="mui-web-scope" data-mui-web-color-scheme="light">
-        <script src='//api.mapbox.com/mapbox.js/plugins/leaflet-hash/v0.2.1/leaflet-hash.js'></script>
+        <script src="<?= $web ?>/lib/map/vendor/leaflet-hash-0.2.1/leaflet-hash.js"></script>
         <link rel="stylesheet" href="<?= $web ?>/lib/map/ruler/leaflet-ruler.css" />
         <script src="<?= $web ?>/lib/map/ruler/leaflet-ruler.js"></script>
 
@@ -76,9 +98,9 @@ $web = \Yii::getAlias('@web');
         <link rel="stylesheet" type="text/css" href="<?= $web ?>/lib/map/leaflet-search/dist/leaflet-search.min.css"/>
         <script src="<?= $web ?>/lib/map/leaflet-search/dist/leaflet-search.min.js"></script>
 
-        <script src='https://npmcdn.com/@turf/turf/turf.min.js'></script> 
+        <script src="<?= $web ?>/lib/map/vendor/turf-compat-7.3.5/turf-compat.min.js"></script>
 
-        <script src='http://203.157.118.125/gis_lib/polyline.js'></script>
+        <script src="<?= $web ?>/lib/map/polyline/polyline.js"></script>
 
         <div class="title">แผนที่ผู้ป่วย TB</div>
         <div id='map'></div>
@@ -86,11 +108,19 @@ $web = \Yii::getAlias('@web');
             <input type="text" id="txt-latlng" style="width: 290px"/>
         </div>
         <script>
+            function escapeHtml(value) {
+                var element = document.createElement('div');
+                element.textContent = value == null ? '' : String(value);
+                return element.innerHTML;
+            }
 
 
 // direction
             var layer_line = L.mapbox.featureLayer();
             var direction = function (origin, destination) {
+                if (typeof google === 'undefined' || !google.maps) {
+                    return Promise.reject('ยังไม่ได้กำหนด DHDC_GOOGLE_MAPS_API_KEY');
+                }
                 var directionsService = new google.maps.DirectionsService();
                 var directionsRequest = {
                     origin: origin,
@@ -139,19 +169,19 @@ $web = \Yii::getAlias('@web');
             }
 // direction
             //base map
-            var googleHybrid = L.tileLayer('http://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}&hl=th', {
+            var googleHybrid = L.tileLayer('https://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}&hl=th', {
                 maxZoom: 20,
                 subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
             });
-            var googleStreet = L.tileLayer('http://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&hl=th', {
+            var googleStreet = L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&hl=th', {
                 maxZoom: 20,
                 subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
             });
-            var googleSat = L.tileLayer('http://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}&hl=th', {
+            var googleSat = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}&hl=th', {
                 maxZoom: 20,
                 subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
             });
-            var googleTerrain = L.tileLayer('http://{s}.google.com/vt/lyrs=p&x={x}&y={y}&z={z}&hl=th', {
+            var googleTerrain = L.tileLayer('https://{s}.google.com/vt/lyrs=p&x={x}&y={y}&z={z}&hl=th', {
                 maxZoom: 20,
                 subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
             });
@@ -291,7 +321,7 @@ $web = \Yii::getAlias('@web');
             tambon.eachLayer(function (layer) {
                 var json = layer.feature;
                 var feature = L.mapbox.featureLayer(json);
-                feature.bindTooltip(json.properties.title, {permanent: 'true'});
+                feature.bindTooltip(escapeHtml(json.properties.title), {permanent: 'true'});
                 feature.setStyle({weight: 1, fillOpacity: 0, dashArray: 4});
                 feature.addTo(tambonGroup);
             });
@@ -328,11 +358,11 @@ $json_risk_route = Url::to(['point-tb']);
                         var list = "";
                         //labelHomeLayer.remove();
                         resGeojson.features.forEach(function (data) {
-                            list += "บ้านเลขที่ " + data.properties.title + "<br>";
+                            list += "บ้านเลขที่ " + escapeHtml(data.properties.title) + "<br>";
 
                             var latLng = [data.geometry.coordinates[1], data.geometry.coordinates[0]];
                             var lbHtml = '<span style="background-color:#FFF8DC;">';
-                            lbHtml += data.properties.title;
+                            lbHtml += escapeHtml(data.properties.title);
                             lbHtml += '<span>';
                             L.marker(latLng, {icon: L.divIcon({className: 'point-label', html: lbHtml})}).addTo(labelHomeLayer);
 
@@ -356,11 +386,11 @@ $json_risk_route = Url::to(['point-tb']);
                         var list = "";
                         //labelHomeLayer.remove();
                         resGeojson.features.forEach(function (data) {
-                            list += "บ้านเลขที่ " + data.properties.title + "<br>";
+                            list += "บ้านเลขที่ " + escapeHtml(data.properties.title) + "<br>";
 
                             var latLng = [data.geometry.coordinates[1], data.geometry.coordinates[0]];
                             var lbHtml = '<span style="background-color:#FFF8DC;">';
-                            lbHtml += data.properties.title;
+                            lbHtml += escapeHtml(data.properties.title);
                             lbHtml += '<span>';
                             L.marker(latLng, {icon: L.divIcon({className: 'point-label', html: lbHtml})}).addTo(labelHomeLayer);
 
@@ -390,12 +420,12 @@ $json_risk_route = Url::to(['point-tb']);
                             'marker-size': 'large'
                         }),
                     });
-                    var title = "หมู่ที่ " + layer.feature.properties.VILL_NO;
-                    title += " บ." + layer.feature.properties.MUBAN;
-                    title += "<br>ต." + layer.feature.properties.TAMBOL;
+                    var title = "หมู่ที่ " + escapeHtml(layer.feature.properties.VILL_NO);
+                    title += " บ." + escapeHtml(layer.feature.properties.MUBAN);
+                    title += "<br>ต." + escapeHtml(layer.feature.properties.TAMBOL);
 
-                    var tips = "หมู่ที่ " + layer.feature.properties.VILL_NO;
-                    tips += " บ." + layer.feature.properties.MUBAN;
+                    var tips = "หมู่ที่ " + escapeHtml(layer.feature.properties.VILL_NO);
+                    tips += " บ." + escapeHtml(layer.feature.properties.MUBAN);
 
                     //marker_vill.bindPopup(title);
                     marker_vill.bindTooltip(tips, {permanent: 'true'});
@@ -410,7 +440,7 @@ $json_risk_route = Url::to(['point-tb']);
                 var json = e.target.getGeoJSON();
                 json.forEach(function (feature) {
                     var pointHosp = L.mapbox.featureLayer();
-                    pointHosp.bindTooltip(feature.properties.title);
+                    pointHosp.bindTooltip(escapeHtml(feature.properties.title));
                     pointHosp.setGeoJSON(feature);
                     pointHosp.addTo(hospitalGroup);
 
@@ -426,7 +456,7 @@ $json_risk_route = Url::to(['point-tb']);
             //เริ่มwms
 
             //ฝน
-            var base_url = 'http://rain.tvis.in.th/';
+            var base_url = <?= Json::htmlEncode($rainRadarBaseUrl) ?>;
             var radar = 'NongKham';
             var radars = '["NongKham","KKN","PHS","CRI","UBN","OMK"]';
             var latlng_topright = '["15.09352819610486,101.7458188486135","18.793550,105.026265","19.094393,102.475537","22.305437,102.143387","17.558854,107.095363","19.904425,100.770048"]';
@@ -436,39 +466,43 @@ $json_risk_route = Url::to(['point-tb']);
             radars = JSON.parse(radars);
             latlng_topright = JSON.parse(latlng_topright);
             latlng_bottomleft = JSON.parse(latlng_bottomleft);
-            var rain = L.layerGroup();
+            var rain = base_url ? L.layerGroup() : null;
             var urllast;
             var boundlast;
-            $.each(radars, function (key, value) {
+            if (rain) {
+                $.each(radars, function (key, value) {
                 var top_right = latlng_topright[key].split(",");
                 var bottom_left = latlng_bottomleft[key].split(",");
 
                 var imageUrl = base_url + "/output/" + value + ".png?" + time,
                         imageBounds = [[top_right[0], top_right[1]], [bottom_left[0], bottom_left[1]]];
-                L.imageOverlay(imageUrl, imageBounds).addTo(rain).setOpacity(0.95);
+                    L.imageOverlay(imageUrl, imageBounds).addTo(rain).setOpacity(0.95);
 
-            });
+                });
+            }
             //จบฝน
 
 
 
             //นำท่วม
 
-            var flood_update = L.tileLayer.wms('http://tile.gistda.or.th/geoserver/flood/wms?', {
+            var floodWmsBaseUrl = <?= Json::htmlEncode($floodWmsBaseUrl) ?>;
+            var floodPercentWmsBaseUrl = <?= Json::htmlEncode($floodPercentWmsBaseUrl) ?>;
+            var flood_update = floodWmsBaseUrl ? L.tileLayer.wms(floodWmsBaseUrl, {
                 layers: "floodarea_tambon",
                 transparent: true,
                 format: 'image/png',
                 tiles: true,
-                attribution: '<a href="http://flood.gistda.or.th" target="_blank"><b>GISTDA THAILAND</b></a>'
-            });
-            var flood_percent = L.tileLayer.wms('http://tile.gistda.or.th/geoserver/wms?', {
+                attribution: '<b>GISTDA THAILAND</b>'
+            }) : null;
+            var flood_percent = floodPercentWmsBaseUrl ? L.tileLayer.wms(floodPercentWmsBaseUrl, {
                 layers: "flood:flood_percent",
                 transparent: true,
                 format: 'image/png',
                 //opacity:1,
                 tiles: true,
-                attribution: '<a href="http://flood.gistda.or.th" target="_blank"><b>GISTDA THAILAND</b></a>'
-            });
+                attribution: '<b>GISTDA THAILAND</b>'
+            }) : null;
             //จบน้ำท่วม
 
             //จบ wms
@@ -479,10 +513,16 @@ $json_risk_route = Url::to(['point-tb']);
                 'หลังคาเรือน': clusterHome,
                 'ขอบเขตตำบล': tambonGroup,
                 'หมู่บ้าน': villGroup,
-                'เรดาห์น้ำฝน': rain,
-                'พื้นที่น้ำท่วมรายตำบลรอบ 7 วัน': flood_percent,
-                'พื้นที่น้ำท่วมรอบ7วัน': flood_update,
             };
+            if (rain) {
+                overlays['เรดาห์น้ำฝน'] = rain;
+            }
+            if (flood_percent) {
+                overlays['พื้นที่น้ำท่วมรายตำบลรอบ 7 วัน'] = flood_percent;
+            }
+            if (flood_update) {
+                overlays['พื้นที่น้ำท่วมรอบ7วัน'] = flood_update;
+            }
             L.control.layers(baseLayers, overlays).addTo(map);
             tambon.eachLayer(function (layer) {
                 var originColor = layer.feature.properties.fill;
@@ -504,7 +544,7 @@ $json_risk_route = Url::to(['point-tb']);
                 });
                 layer.on('click', function (e) {
                     map.fitBounds(layer.getBounds());
-                    layer.bindPopup(layer.feature.properties.TAM_NAMT);
+                    layer.bindPopup(escapeHtml(layer.feature.properties.TAM_NAMT));
                     layer.openPopup();
                 });
             });

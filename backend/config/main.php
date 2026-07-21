@@ -47,6 +47,17 @@ return [
                 [
                     'class' => 'yii\log\FileTarget',
                     'levels' => ['error', 'warning'],
+                    // Never persist request/session superglobals: they may contain
+                    // credentials, identifiers, or protected health information.
+                    'logVars' => [],
+                    'maskVars' => [
+                        '_SERVER.HTTP_AUTHORIZATION',
+                        '_SERVER.HTTP_COOKIE',
+                        '_SERVER.HTTP_X_CSRF_TOKEN',
+                        '_SERVER.*TOKEN*',
+                        '_SERVER.*SECRET*',
+                        '_SERVER.*PASSWORD*',
+                    ],
                 ],
             ],
         ],

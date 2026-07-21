@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 $root = dirname(__DIR__);
+$productionOnly = in_array('--production-only', $argv, true);
 $backupRoot = $root . DIRECTORY_SEPARATOR . '_codex_backup';
 $workDir = $backupRoot . DIRECTORY_SEPARATOR . 'production-init-verification-'
     . gmdate('YmdHis') . '-' . bin2hex(random_bytes(4));
@@ -52,7 +53,24 @@ try {
     if (!copy($root . DIRECTORY_SEPARATOR . 'init', $workDir . DIRECTORY_SEPARATOR . 'init')) {
         throw new RuntimeException('Cannot copy the production initializer.');
     }
-    copyTree($root . DIRECTORY_SEPARATOR . 'environments', $workDir . DIRECTORY_SEPARATOR . 'environments');
+    if ($productionOnly) {
+        $environmentTarget = $workDir . DIRECTORY_SEPARATOR . 'environments';
+        if (!mkdir($environmentTarget, 0775, true) && !is_dir($environmentTarget)) {
+            throw new RuntimeException("Cannot create directory: $environmentTarget");
+        }
+        if (!copy(
+            $root . DIRECTORY_SEPARATOR . 'environments' . DIRECTORY_SEPARATOR . 'index.php',
+            $environmentTarget . DIRECTORY_SEPARATOR . 'index.php'
+        )) {
+            throw new RuntimeException('Cannot copy the environment index.');
+        }
+        copyTree(
+            $root . DIRECTORY_SEPARATOR . 'environments' . DIRECTORY_SEPARATOR . 'prod',
+            $environmentTarget . DIRECTORY_SEPARATOR . 'prod'
+        );
+    } else {
+        copyTree($root . DIRECTORY_SEPARATOR . 'environments', $workDir . DIRECTORY_SEPARATOR . 'environments');
+    }
 
     $command = escapeshellarg(PHP_BINARY)
         . ' ' . escapeshellarg($workDir . DIRECTORY_SEPARATOR . 'init')
@@ -100,7 +118,9 @@ try {
         throw new RuntimeException('Generated production mailer is not configured for real transport.');
     }
 
-    echo "Production initializer verification passed.\n";
+    echo 'Production initializer verification passed'
+        . ($productionOnly ? ' (production-only artifact)' : '')
+        . ".\n";
     echo "Verification copy: $workDir\n";
 } catch (Throwable $exception) {
     fwrite(STDERR, "Production initializer verification failed: {$exception->getMessage()}\n");
