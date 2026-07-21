@@ -7,17 +7,18 @@ param(
     [string]$HostName = "127.0.0.1",
     [int]$FrontendPort = 18180,
     [int]$BackendPort = 18181,
-    [string]$DbCli = "C:\Program Files\MariaDB 12.2\bin\mariadb.exe",
-    [string]$DbHost = "127.0.0.1",
-    [int]$DbPort = 33061,
-    [string]$DbUser = "root",
-    [string]$DbPassword = "REDACTED_SECRET_8D969EEF6ECA",
-    [string]$DbName = "dhdc4"
+    [string]$DbCli = $(if ($env:DHDC_DB_CLI) { $env:DHDC_DB_CLI } else { "C:\Program Files\MariaDB 12.2\bin\mariadb.exe" }),
+    [string]$DbHost = $(if ($env:DHDC_DB_HOST) { $env:DHDC_DB_HOST } else { "127.0.0.1" }),
+    [int]$DbPort = $(if ($env:DHDC_DB_PORT) { [int]$env:DHDC_DB_PORT } else { 33061 }),
+    [string]$DbUser = $env:DHDC_DB_USER,
+    [string]$DbPassword = $env:DHDC_DB_PASSWORD,
+    [string]$DbName = $(if ($env:DHDC_DB_NAME) { $env:DHDC_DB_NAME } else { "dhdc4" })
 )
 
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 $root = Split-Path -Parent $PSScriptRoot
+$previousMariaDbPassword = $env:MYSQL_PWD
 $runDir = Join-Path $root "_codex_backup\smoke-ui-authenticated"
 New-Item -ItemType Directory -Path $runDir -Force | Out-Null
 
@@ -142,20 +143,38 @@ function Get-NewFileContent {
 }
 
 function Get-ProcessInvariants {
-    $result = & $DbCli --host=$DbHost --port=$DbPort --user=$DbUser --password=$DbPassword --database=$DbName --batch --raw --skip-column-names --execute="SELECT last_time FROM last_transform LIMIT 1; SELECT last_time FROM last_err_check LIMIT 1; SELECT is_running FROM sys_process_running LIMIT 1;"
+    $result = & $DbCli --host=$DbHost --port=$DbPort --user=$DbUser --database=$DbName --batch --raw --skip-column-names --execute="SELECT last_time FROM last_transform LIMIT 1; SELECT last_time FROM last_err_check LIMIT 1; SELECT is_running FROM sys_process_running LIMIT 1;"
     Assert-True ($LASTEXITCODE -eq 0) "Process invariant query failed"
     Assert-True ($result.Count -eq 3) "Unexpected process invariant result"
     return ($result -join "|")
 }
 
 function Get-ActiveModuleRoutes {
-    $routes = & $DbCli --host=$DbHost --port=$DbPort --user=$DbUser --password=$DbPassword --database=$DbName --batch --raw --skip-column-names --execute="SELECT route FROM sys_dhdc_plugin WHERE type='module' AND status='on' ORDER BY id;"
+    $routes = & $DbCli --host=$DbHost --port=$DbPort --user=$DbUser --database=$DbName --batch --raw --skip-column-names --execute="SELECT route FROM sys_dhdc_plugin WHERE type='module' AND status='on' ORDER BY id;"
     Assert-True ($LASTEXITCODE -eq 0) "Active module route query failed"
     return @($routes)
 }
 
 try {
     Push-Location $root
+    Assert-True (-not [string]::IsNullOrWhiteSpace($DbUser)) "DHDC_DB_USER or -DbUser is required"
+    Assert-True (-not [string]::IsNullOrWhiteSpace($DbPassword)) "DHDC_DB_PASSWORD or -DbPassword is required"
+    $env:MYSQL_PWD = $DbPassword
+
+    Write-Output "smoke-ui-authenticated: database least privilege"
+    $privilegeRows = @(& $DbCli --host=$DbHost --port=$DbPort --user=$DbUser --database=$DbName --batch --raw --skip-column-names --execute="SELECT CURRENT_USER(); SHOW GRANTS;")
+    Assert-True ($LASTEXITCODE -eq 0) "Database privilege query failed"
+    Assert-True ($privilegeRows.Count -ge 2) "Database privilege query returned incomplete results"
+    $currentDbUser = [string]$privilegeRows[0]
+    $grantRows = @($privilegeRows | Select-Object -Skip 1)
+    $grantText = $grantRows -join "`n"
+    $unsafeGlobalGrants = @($grantRows | Where-Object {
+        $_ -match '(?i)\bON\s+\*\.\*' -and
+        $_ -notmatch '(?i)^\s*GRANT\s+USAGE\s+ON\s+\*\.\*\s+TO\b'
+    })
+    Assert-True ($currentDbUser -notmatch '(?i)^root@') "Application database account must not be root"
+    Assert-True ($unsafeGlobalGrants.Count -eq 0) "Application database account must not have global privileges other than USAGE"
+    Assert-True ($grantText -notmatch '(?i)\bWITH\s+GRANT\s+OPTION\b') "Application database account must not have GRANT OPTION"
 
     Write-Output "smoke-ui-authenticated: lint"
     foreach ($file in @(
@@ -253,5 +272,10 @@ try {
     Write-Output "smoke-ui-authenticated: OK"
 } finally {
     Stop-YiiServers
+    if ($null -eq $previousMariaDbPassword) {
+        Remove-Item Env:MYSQL_PWD -ErrorAction SilentlyContinue
+    } else {
+        $env:MYSQL_PWD = $previousMariaDbPassword
+    }
     Pop-Location
 }

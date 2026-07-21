@@ -1,4 +1,9 @@
 RewriteEngine on
+
+# Import work files can contain health information and must never be served
+# directly by Apache. The application accesses them through the filesystem.
+RewriteRule ^(?:fortythree|fortythreebackup|unzip|sql_upload_file)(?:/|$) - [F,L,NC]
+
 # If a directory or a file exists, use it directly
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d

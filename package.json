@@ -7,8 +7,10 @@
     "verify:security": "php tools/verify-owasp-security.php",
     "verify:production-readiness": "php tools/verify-production-readiness.php",
     "verify:http-security": "php tools/verify-http-security.php",
-    "verify:hdcex-report-pages": "node tools/verify-hdc-report-pages.js --module=hdcex",
-    "verify:hdc-report-pages": "node tools/verify-hdc-report-pages.js",
+    "verify:hdcex-report-pages": "node tools/verify-hdc-report-pages.js --module=hdcex --limit=12 --viewports=mobile,desktop --auth-session=auto",
+    "verify:hdcex-report-pages:full": "node tools/verify-hdc-report-pages.js --module=hdcex --auth-session=auto",
+    "verify:hdc-report-pages": "node tools/verify-hdc-report-pages.js --limit=12 --viewports=mobile,desktop --auth-session=auto",
+    "verify:hdc-report-pages:full": "node tools/verify-hdc-report-pages.js --auth-session=auto",
     "verify:ui-layout": "node tools/verify-ui-layout.js"
   },
   "devDependencies": {

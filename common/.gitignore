@@ -1,3 +1,5 @@
-/tests/
+/tests/_output/
 
 !/.gitignore
+!/tests/
+!/tests/**

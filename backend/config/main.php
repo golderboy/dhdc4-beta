@@ -22,6 +22,9 @@ return [
                 $headers->set('X-Content-Type-Options', 'nosniff');
                 $headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
                 $headers->set('Content-Security-Policy', "frame-ancestors 'self'; base-uri 'self'");
+                if (Yii::$app->request->isSecureConnection) {
+                    $headers->set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+                }
             },
         ],
         /* 'user' => [

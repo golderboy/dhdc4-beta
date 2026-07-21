@@ -1,0 +1,59 @@
+# Replace hostnames and certificate paths before enabling this file.
+# Required modules: rewrite, ssl, headers
+
+<VirtualHost *:80>
+    ServerName dhdc.example.go.th
+    Redirect permanent / https://dhdc.example.go.th/
+</VirtualHost>
+
+<VirtualHost *:80>
+    ServerName dhdc-admin.example.go.th
+    Redirect permanent / https://dhdc-admin.example.go.th/
+</VirtualHost>
+
+<Directory "/var/www/dhdc4">
+    AllowOverride None
+    Require all denied
+</Directory>
+
+<VirtualHost *:443>
+    ServerName dhdc.example.go.th
+    DocumentRoot "/var/www/dhdc4/frontend/web"
+
+    SSLEngine on
+    SSLCertificateFile "/etc/pki/tls/certs/dhdc.crt"
+    SSLCertificateKeyFile "/etc/pki/tls/private/dhdc.key"
+
+    <Directory "/var/www/dhdc4/frontend/web">
+        Options -Indexes
+        AllowOverride All
+        Require all granted
+    </Directory>
+
+    <DirectoryMatch "^/var/www/dhdc4/frontend/web/(fortythree|fortythreebackup|unzip|sql_upload_file)(/|$)">
+        Require all denied
+    </DirectoryMatch>
+
+    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    ErrorLog logs/dhdc4-frontend-error.log
+    CustomLog logs/dhdc4-frontend-access.log combined
+</VirtualHost>
+
+<VirtualHost *:443>
+    ServerName dhdc-admin.example.go.th
+    DocumentRoot "/var/www/dhdc4/backend/web"
+
+    SSLEngine on
+    SSLCertificateFile "/etc/pki/tls/certs/dhdc-admin.crt"
+    SSLCertificateKeyFile "/etc/pki/tls/private/dhdc-admin.key"
+
+    <Directory "/var/www/dhdc4/backend/web">
+        Options -Indexes
+        AllowOverride All
+        Require all granted
+    </Directory>
+
+    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    ErrorLog logs/dhdc4-backend-error.log
+    CustomLog logs/dhdc4-backend-access.log combined
+</VirtualHost>

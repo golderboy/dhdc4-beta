@@ -6,12 +6,12 @@ param(
     [string]$Php = "php",
     [string]$Npx = "npx",
     [string]$HostName = "127.0.0.1",
-    [string]$DbCli = "C:\Program Files\MariaDB 12.2\bin\mariadb.exe",
-    [string]$DbHost = "127.0.0.1",
-    [int]$DbPort = 33061,
-    [string]$DbUser = "root",
-    [string]$DbPassword = "REDACTED_SECRET_8D969EEF6ECA",
-    [string]$DbName = "dhdc4",
+    [string]$DbCli = $(if ($env:DHDC_DB_CLI) { $env:DHDC_DB_CLI } else { "C:\Program Files\MariaDB 12.2\bin\mariadb.exe" }),
+    [string]$DbHost = $(if ($env:DHDC_DB_HOST) { $env:DHDC_DB_HOST } else { "127.0.0.1" }),
+    [int]$DbPort = $(if ($env:DHDC_DB_PORT) { [int]$env:DHDC_DB_PORT } else { 33061 }),
+    [string]$DbUser = $env:DHDC_DB_USER,
+    [string]$DbPassword = $env:DHDC_DB_PASSWORD,
+    [string]$DbName = $(if ($env:DHDC_DB_NAME) { $env:DHDC_DB_NAME } else { "dhdc4" }),
     [string]$ExpectedImportZip = "F43_11207_20260601133018.zip",
     [int]$ExpectedImportFileRows = 52,
     [int]$ExpectedImportRecords = 90042,
@@ -22,6 +22,7 @@ param(
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 $root = Split-Path -Parent $PSScriptRoot
+$previousMariaDbPassword = $env:MYSQL_PWD
 
 function Assert-True {
     param([bool]$Condition, [string]$Message)
@@ -38,6 +39,9 @@ function Invoke-Step {
 
 try {
     Push-Location $root
+    Assert-True (-not [string]::IsNullOrWhiteSpace($DbUser)) "DHDC_DB_USER or -DbUser is required"
+    Assert-True (-not [string]::IsNullOrWhiteSpace($DbPassword)) "DHDC_DB_PASSWORD or -DbPassword is required"
+    $env:MYSQL_PWD = $DbPassword
 
     Invoke-Step "readonly smoke" {
         & ".\tools\smoke-ui-readonly.ps1" `
@@ -107,7 +111,7 @@ SELECT is_running FROM sys_process_running LIMIT 1;
 SELECT p_name FROM hdc_log ORDER BY id DESC LIMIT 1;
 SELECT fnc_name FROM sys_check_process LIMIT 1;
 "@
-        $result = & $DbCli --host=$DbHost --port=$DbPort --user=$DbUser --password=$DbPassword --database=$DbName --batch --raw --skip-column-names --execute=$sql
+        $result = & $DbCli --host=$DbHost --port=$DbPort --user=$DbUser --database=$DbName --batch --raw --skip-column-names --execute=$sql
         Assert-True ($LASTEXITCODE -eq 0) "final database invariant query failed"
         Assert-True ([int]$result[0] -ge 1) "expected import ZIP is not OK"
         Assert-True ([int]$result[1] -eq $ExpectedImportFileRows) "unexpected imported file count"
@@ -125,5 +129,10 @@ SELECT fnc_name FROM sys_check_process LIMIT 1;
 
     Write-Output "verify-release: OK"
 } finally {
+    if ($null -eq $previousMariaDbPassword) {
+        Remove-Item Env:MYSQL_PWD -ErrorAction SilentlyContinue
+    } else {
+        $env:MYSQL_PWD = $previousMariaDbPassword
+    }
     Pop-Location
 }

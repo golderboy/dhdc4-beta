@@ -3,12 +3,12 @@ param(
     [string]$HostName = "127.0.0.1",
     [int]$FrontendPort = 18130,
     [int]$BackendPort = 18131,
-    [string]$DbCli = "C:\Program Files\MariaDB 12.2\bin\mariadb.exe",
-    [string]$DbHost = "127.0.0.1",
-    [int]$DbPort = 33061,
-    [string]$DbUser = "root",
-    [string]$DbPassword = "REDACTED_SECRET_8D969EEF6ECA",
-    [string]$DbName = "dhdc4",
+    [string]$DbCli = $(if ($env:DHDC_DB_CLI) { $env:DHDC_DB_CLI } else { "C:\Program Files\MariaDB 12.2\bin\mariadb.exe" }),
+    [string]$DbHost = $(if ($env:DHDC_DB_HOST) { $env:DHDC_DB_HOST } else { "127.0.0.1" }),
+    [int]$DbPort = $(if ($env:DHDC_DB_PORT) { [int]$env:DHDC_DB_PORT } else { 33061 }),
+    [string]$DbUser = $env:DHDC_DB_USER,
+    [string]$DbPassword = $env:DHDC_DB_PASSWORD,
+    [string]$DbName = $(if ($env:DHDC_DB_NAME) { $env:DHDC_DB_NAME } else { "dhdc4" }),
     [string]$ExpectedImportZip = "F43_11207_20260601133018.zip",
     [int]$ExpectedImportFileRows = 52,
     [int]$ExpectedImportRecords = 90042,
@@ -18,7 +18,9 @@ param(
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 $root = Split-Path -Parent $PSScriptRoot
+$previousMariaDbPassword = $env:MYSQL_PWD
 $runDir = Join-Path $root "_codex_backup\smoke-ui-readonly"
+$frontendTestSessionFile = $null
 New-Item -ItemType Directory -Path $runDir -Force | Out-Null
 
 function Start-YiiServer {
@@ -78,6 +80,14 @@ function Get-Url {
     return Invoke-WebRequest -Uri $Url -UseBasicParsing -TimeoutSec 30
 }
 
+function Get-UrlWithSession {
+    param(
+        [string]$Url,
+        [Microsoft.PowerShell.Commands.WebRequestSession]$Session
+    )
+    return Invoke-WebRequest -Uri $Url -WebSession $Session -UseBasicParsing -TimeoutSec 30
+}
+
 function Get-FileLineCount {
     param([string]$Path)
     if (Test-Path $Path) {
@@ -100,6 +110,24 @@ function Get-NewFileContent {
 
 try {
     Push-Location $root
+    Assert-True (-not [string]::IsNullOrWhiteSpace($DbUser)) "DHDC_DB_USER or -DbUser is required"
+    Assert-True (-not [string]::IsNullOrWhiteSpace($DbPassword)) "DHDC_DB_PASSWORD or -DbPassword is required"
+    $env:MYSQL_PWD = $DbPassword
+
+    Write-Output "smoke-ui-readonly: database least privilege"
+    $privilegeRows = @(& $DbCli --host=$DbHost --port=$DbPort --user=$DbUser --database=$DbName --batch --raw --skip-column-names --execute="SELECT CURRENT_USER(); SHOW GRANTS;")
+    Assert-True ($LASTEXITCODE -eq 0) "Database privilege query failed"
+    Assert-True ($privilegeRows.Count -ge 2) "Database privilege query returned incomplete results"
+    $currentDbUser = [string]$privilegeRows[0]
+    $grantRows = @($privilegeRows | Select-Object -Skip 1)
+    $grantText = $grantRows -join "`n"
+    $unsafeGlobalGrants = @($grantRows | Where-Object {
+        $_ -match '(?i)\bON\s+\*\.\*' -and
+        $_ -notmatch '(?i)^\s*GRANT\s+USAGE\s+ON\s+\*\.\*\s+TO\b'
+    })
+    Assert-True ($currentDbUser -notmatch '(?i)^root@') "Application database account must not be root"
+    Assert-True ($unsafeGlobalGrants.Count -eq 0) "Application database account must not have global privileges other than USAGE"
+    Assert-True ($grantText -notmatch '(?i)\bWITH\s+GRANT\s+OPTION\b') "Application database account must not have GRANT OPTION"
 
     Write-Output "smoke-ui-readonly: lint"
     $lintFiles = @(
@@ -133,7 +161,7 @@ try {
     Assert-True (($migration -join "`n") -match "No new migrations found") "There are pending migrations"
 
     Write-Output "smoke-ui-readonly: database invariants"
-    $dbResult = & $DbCli --host=$DbHost --port=$DbPort --user=$DbUser --password=$DbPassword --database=$DbName --batch --raw --skip-column-names --execute="SELECT COUNT(*) FROM sys_upload_fortythree WHERE note2='OK'; SELECT COUNT(*) FROM sys_count_import_file; SELECT is_running FROM sys_process_running LIMIT 1; SELECT COUNT(*) FROM sys_reportcategory_dhdc; SELECT cat_id FROM sys_reportcategory_dhdc ORDER BY cat_id LIMIT 1; SELECT CAST(yearprocess AS UNSIGNED) + 543 FROM pk_byear LIMIT 1;"
+    $dbResult = & $DbCli --host=$DbHost --port=$DbPort --user=$DbUser --database=$DbName --batch --raw --skip-column-names --execute="SELECT COUNT(*) FROM sys_upload_fortythree WHERE note2='OK'; SELECT COUNT(*) FROM sys_count_import_file; SELECT is_running FROM sys_process_running LIMIT 1; SELECT COUNT(*) FROM sys_reportcategory_dhdc; SELECT cat_id FROM sys_reportcategory_dhdc ORDER BY cat_id LIMIT 1; SELECT CAST(yearprocess AS UNSIGNED) + 543 FROM pk_byear LIMIT 1;"
     Assert-True ($LASTEXITCODE -eq 0) "Database invariant query failed"
     Assert-True ([int]$dbResult[0] -ge 1) "No successful 43-file upload found"
     Assert-True ([int]$dbResult[1] -ge 1) "sys_count_import_file is empty"
@@ -157,7 +185,7 @@ SELECT fnc_name FROM sys_check_process LIMIT 1;
 SELECT COUNT(*) FROM sys_dhdc_count_file WHERE b_year = '$expectedBudgetYearSql';
 SELECT COALESCE(SUM(total), 0) FROM sys_dhdc_count_file WHERE b_year = '$expectedBudgetYearSql';
 "@
-    $workflow = & $DbCli --host=$DbHost --port=$DbPort --user=$DbUser --password=$DbPassword --database=$DbName --batch --raw --skip-column-names --execute=$workflowSql
+    $workflow = & $DbCli --host=$DbHost --port=$DbPort --user=$DbUser --database=$DbName --batch --raw --skip-column-names --execute=$workflowSql
     Assert-True ($LASTEXITCODE -eq 0) "43-file workflow invariant query failed"
     Assert-True ([int]$workflow[0] -ge 1) "Expected import ZIP is not marked OK: $ExpectedImportZip"
     Assert-True ([int]$workflow[1] -eq $ExpectedImportFileRows) "Unexpected imported 43-file row count for $ExpectedImportZip"
@@ -186,9 +214,6 @@ SELECT COALESCE(SUM(total), 0) FROM sys_dhdc_count_file WHERE b_year = '$expecte
 
     $frontendUrls = @(
         "http://$HostName`:$FrontendPort/import/default/dashboard",
-        "http://$HostName`:$FrontendPort/import/upload/index",
-        "http://$HostName`:$FrontendPort/import/upload/view?id=1",
-        "http://$HostName`:$FrontendPort/import/count-file/index",
         "http://$HostName`:$FrontendPort/qc/default/index",
         "http://$HostName`:$FrontendPort/hdc/default/index",
         "http://$HostName`:$FrontendPort/hdc/default/report-group?cat_id=$hdcCategoryId",
@@ -205,6 +230,43 @@ SELECT COALESCE(SUM(total), 0) FROM sys_dhdc_count_file WHERE b_year = '$expecte
         Assert-True ($response.Content -match "dhdc-stat-card") "New UI stat cards missing for $url"
         Assert-True ($response.Content -notmatch "Database Exception") "Database Exception rendered for $url"
         Assert-True ($response.Content -notmatch "PHP Warning") "PHP Warning rendered for $url"
+    }
+
+    Write-Output "smoke-ui-readonly: create local User test session"
+    $sessionJson = & $Php tools/create-yii-test-session.php --role=User --app=frontend
+    Assert-True ($LASTEXITCODE -eq 0) "Could not create local frontend test session"
+    $sessionInfo = ($sessionJson -join "`n") | ConvertFrom-Json
+    Assert-True ([bool]$sessionInfo.canAccessRole) "Local frontend test session lacks User role"
+    Assert-True (-not [string]::IsNullOrWhiteSpace([string]$sessionInfo.sessionName)) "Frontend session name is empty"
+    Assert-True (-not [string]::IsNullOrWhiteSpace([string]$sessionInfo.sessionId)) "Frontend session id is empty"
+
+    $frontendTestSession = New-Object Microsoft.PowerShell.Commands.WebRequestSession
+    $frontendTestCookie = New-Object System.Net.Cookie(
+        [string]$sessionInfo.sessionName,
+        [string]$sessionInfo.sessionId,
+        "/",
+        $HostName
+    )
+    $frontendTestSession.Cookies.Add($frontendTestCookie)
+    $phpSessionPath = & $Php -r "echo session_save_path();"
+    if (-not [string]::IsNullOrWhiteSpace([string]$phpSessionPath)) {
+        $frontendTestSessionFile = Join-Path ([string]$phpSessionPath) ("sess_" + [string]$sessionInfo.sessionId)
+    }
+
+    $protectedFrontendUiUrls = @(
+        "http://$HostName`:$FrontendPort/import/upload/index",
+        "http://$HostName`:$FrontendPort/import/upload/view?id=1",
+        "http://$HostName`:$FrontendPort/import/count-file/index"
+    )
+    foreach ($url in $protectedFrontendUiUrls) {
+        Write-Output "smoke-ui-readonly: authenticated GET $url"
+        $response = Get-UrlWithSession $url $frontendTestSession
+        Assert-True ($response.StatusCode -eq 200) "Unexpected HTTP status for authenticated $url"
+        Assert-True ($response.BaseResponse.ResponseUri.AbsolutePath -notmatch "/(?:user/security|site)/login") "Authenticated route redirected to login for $url"
+        Assert-True ($response.Content -match "dhdc-page-header") "New UI header missing for authenticated $url"
+        Assert-True ($response.Content -match "dhdc-stat-card") "New UI stat cards missing for authenticated $url"
+        Assert-True ($response.Content -notmatch "Database Exception") "Database Exception rendered for authenticated $url"
+        Assert-True ($response.Content -notmatch "PHP Warning") "PHP Warning rendered for authenticated $url"
     }
 
     Write-Output "smoke-ui-readonly: GET frontend login"
@@ -226,6 +288,9 @@ SELECT COALESCE(SUM(total), 0) FROM sys_dhdc_count_file WHERE b_year = '$expecte
     Assert-True ($frontendUserLogin.Content -match "_csrf-frontend") "CSRF field missing for frontend user login"
 
     $protectedFrontendUrls = @(
+        "http://$HostName`:$FrontendPort/import/upload/index",
+        "http://$HostName`:$FrontendPort/import/upload/view?id=1",
+        "http://$HostName`:$FrontendPort/import/count-file/index",
         "http://$HostName`:$FrontendPort/Unitcost/default/index",
         "http://$HostName`:$FrontendPort/student/default/index",
         "http://$HostName`:$FrontendPort/Tbmaps/default/index",
@@ -280,5 +345,13 @@ SELECT COALESCE(SUM(total), 0) FROM sys_dhdc_count_file WHERE b_year = '$expecte
     Write-Output "smoke-ui-readonly: OK"
 } finally {
     Stop-YiiServers
+    if ($frontendTestSessionFile -and (Test-Path -LiteralPath $frontendTestSessionFile)) {
+        Remove-Item -LiteralPath $frontendTestSessionFile -Force -ErrorAction SilentlyContinue
+    }
+    if ($null -eq $previousMariaDbPassword) {
+        Remove-Item Env:MYSQL_PWD -ErrorAction SilentlyContinue
+    } else {
+        $env:MYSQL_PWD = $previousMariaDbPassword
+    }
     Pop-Location
 }

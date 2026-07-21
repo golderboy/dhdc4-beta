@@ -7,3 +7,7 @@
 *.md text eol=lf
 *.sql text eol=lf
 *.bat text eol=crlf
+
+# The legacy self-updater is intentionally excluded from release archives.
+/update export-ignore
+/update/** export-ignore

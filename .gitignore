@@ -46,9 +46,14 @@ desktop.ini
 !console/config/params-local.php
 !frontend/config/main-local.php
 !frontend/config/params-local.php
+# Yii init templates are source templates, not machine-local runtime secrets.
+!environments/dev/**/config/*-local.php
+!environments/prod/**/config/*-local.php
 backend/config/test-local.php
 frontend/config/test-local.php
 common/config/connect_database.php
 common/config/connect_update.php
+frontend/config/cookie-validation-key.php
+backend/config/cookie-validation-key.php
 !common/config/connect_database.example.php
 !common/config/connect_update.example.php

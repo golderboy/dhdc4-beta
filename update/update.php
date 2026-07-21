@@ -1,8 +1,5 @@
 <?php
-$zip = new \ZipArchive();
-$dir = getcwd();
-if ($zip->open("./update.zip") === TRUE) {
-    $zip->extractTo("../../");
-    $zip->close();
-}
-unlink("./update.zip");
+
+http_response_code(404);
+header('Content-Type: text/plain; charset=UTF-8');
+exit('Not Found');

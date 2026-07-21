@@ -3,21 +3,33 @@
 $options = getopt('', [
     'frontend-url:',
     'backend-url::',
+    'project-url::',
     'frontend-user-cookie::',
     'frontend-admin-cookie::',
     'backend-admin-cookie::',
     'timeout::',
+    'ca-file::',
 ]);
 
 $frontendUrl = isset($options['frontend-url']) ? rtrim($options['frontend-url'], '/') : null;
 $backendUrl = isset($options['backend-url']) ? rtrim($options['backend-url'], '/') : null;
+$projectUrl = isset($options['project-url']) ? rtrim($options['project-url'], '/') : null;
 $frontendUserCookie = isset($options['frontend-user-cookie']) ? (string)$options['frontend-user-cookie'] : '';
 $frontendAdminCookie = isset($options['frontend-admin-cookie']) ? (string)$options['frontend-admin-cookie'] : '';
 $backendAdminCookie = isset($options['backend-admin-cookie']) ? (string)$options['backend-admin-cookie'] : '';
 $timeout = isset($options['timeout']) ? max(1, (int)$options['timeout']) : 10;
+$caFile = isset($options['ca-file']) ? trim((string)$options['ca-file']) : '';
+
+if ($caFile !== '' && (!is_file($caFile) || !is_readable($caFile))) {
+    fwrite(STDERR, "CA file is not readable: $caFile\n");
+    exit(2);
+}
+if ($caFile !== '') {
+    putenv('DHDC_HTTP_CA_FILE=' . $caFile);
+}
 
 if (!$frontendUrl) {
-    fwrite(STDERR, "Usage: php tools/verify-http-security.php --frontend-url=http://host [--backend-url=http://host]\n");
+    fwrite(STDERR, "Usage: php tools/verify-http-security.php --frontend-url=http://host [--backend-url=http://host] [--project-url=http://host/project] [--ca-file=/path/to/ca.crt]\n");
     exit(2);
 }
 
@@ -34,6 +46,16 @@ function fetchUrl(string $url, int $timeout, string $cookie = '', string $method
         $headers .= 'Content-Length: ' . strlen($body) . "\r\n";
     }
 
+    $sslOptions = [
+        'verify_peer' => true,
+        'verify_peer_name' => true,
+        'allow_self_signed' => false,
+    ];
+    $caFile = getenv('DHDC_HTTP_CA_FILE');
+    if ($caFile !== false && $caFile !== '') {
+        $sslOptions['cafile'] = $caFile;
+    }
+
     $context = stream_context_create([
         'http' => [
             'method' => $method,
@@ -43,6 +65,7 @@ function fetchUrl(string $url, int $timeout, string $cookie = '', string $method
             'header' => $headers,
             'content' => $body,
         ],
+        'ssl' => $sslOptions,
     ]);
 
     $body = @file_get_contents($url, false, $context);
@@ -105,6 +128,9 @@ function checkHeaders(string $label, string $baseUrl, int $timeout, array &$fail
     expectHeader($label, $result, 'X-Content-Type-Options', 'nosniff', $failures);
     expectHeader($label, $result, 'Referrer-Policy', 'strict-origin-when-cross-origin', $failures);
     expectHeader($label, $result, 'Content-Security-Policy', "frame-ancestors 'self'", $failures);
+    if (strtolower((string)parse_url($baseUrl, PHP_URL_SCHEME)) === 'https') {
+        expectHeader($label, $result, 'Strict-Transport-Security', 'max-age=31536000', $failures);
+    }
 }
 
 function runStatusChecks(string $label, string $baseUrl, array $checks, int $timeout, array &$failures, string $cookie = ''): void
@@ -133,12 +159,16 @@ $frontendChecks = [
     ['/import/upload/index', [302, 403]],
     ['/import/count-file/index', [302, 403]],
     ['/import/upload/detail?filename=test.zip', [302, 403]],
+    ['/import/import-error/index', [302, 403]],
+    ['/import/import-error/create', [302, 403]],
     ['/import/ajax/import-all?fortythree=test.zip&upload_date=2026-07-09&upload_time=120000', [302, 403, 405]],
     ['/import/ajax/truncate', [302, 403, 405]],
     ['/import/ajax/update', [302, 403, 405]],
     ['/import2/upload/index', [302, 403]],
     ['/import2/count-file/index', [302, 403]],
     ['/import2/upload/detail?filename=test.zip', [302, 403]],
+    ['/import2/import-error/index', [302, 403]],
+    ['/import2/import-error/create', [302, 403]],
     ['/import2/ajax/import-all?fortythree=test.zip&upload_date=2026-07-09&upload_time=120000', [302, 403, 405]],
     ['/import2/ajax/truncate', [302, 403, 405]],
     ['/import2/ajax/update', [302, 403, 405]],
@@ -151,6 +181,12 @@ $frontendChecks = [
     ['/gis/json/read?file=composer.json', [302, 403, 405]],
     ['/hrp/json/read?file=composer.json', [302, 403, 405]],
     ['/Tbmaps/json/read?file=composer.json', [302, 403, 405]],
+    ['/population/default/gen-data', [302, 403, 405]],
+    ['/population/default/index?hospcode=1%20OR%201%3D1', [400]],
+    ['/fortythree/security-probe.zip', [403, 404]],
+    ['/fortythreebackup/security-probe.zip', [403, 404]],
+    ['/unzip/security-probe.txt', [403, 404]],
+    ['/sql_upload_file/security-probe.sql', [403, 404]],
     ['/lib/map/leaflet-search/examples/search.php', [404, 500]],
 ];
 
@@ -204,6 +240,7 @@ if ($backendUrl) {
         ['/hdcreportsetup/hdcsql/index', [302, 403]],
         ['/hdcreportsetup/hdcsql/create', [302, 403]],
         ['/hdcreportsetup/hdcsql/export?id=test', [302, 403]],
+        ['/setup/chospital/create', [302, 403]],
     ];
 
     runStatusChecks('backend', $backendUrl, $backendChecks, $timeout, $failures);
@@ -220,6 +257,16 @@ if ($backendUrl) {
         ];
         runStatusChecks('backend-admin', $backendUrl, $backendAdminChecks, $timeout, $failures, $backendAdminCookie);
     }
+}
+
+if ($projectUrl) {
+    $projectRootChecks = [
+        ['/composer.json', [403, 404], 'HEAD'],
+        ['/.git/HEAD', [403, 404], 'HEAD'],
+        ['/frontend/runtime/logs/app.log', [403, 404], 'HEAD'],
+        ['/update/update.php', [403, 404], 'HEAD'],
+    ];
+    runStatusChecks('project-root', $projectUrl, $projectRootChecks, $timeout, $failures);
 }
 
 if (!empty($failures)) {

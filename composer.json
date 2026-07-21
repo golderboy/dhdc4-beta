@@ -43,6 +43,10 @@
             "yiisoft/yii2-composer": true
         }
     },
+    "scripts": {
+        "test": "@php vendor/bin/codecept run -c common --no-interaction",
+        "verify:init": "@php tools/verify-production-init.php"
+    },
     "repositories": [
         {
             "type": "composer",

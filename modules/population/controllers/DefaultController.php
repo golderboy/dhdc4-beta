@@ -5,6 +5,10 @@ namespace modules\population\controllers;
 use yii\web\Controller;
 use components\MyHelper;
 use yii\data\ArrayDataProvider;
+use yii\filters\AccessControl;
+use yii\filters\VerbFilter;
+use yii\web\BadRequestHttpException;
+use yii\web\NotFoundHttpException;
 use common\models\config\SysConfigMain;
 use modules\gis\models\GisDhdcTambon;
 
@@ -12,6 +16,27 @@ use modules\gis\models\GisDhdcTambon;
  * Default controller for the `population` module
  */
 class DefaultController extends Controller {
+
+    public function behaviors() {
+        return [
+            'access' => [
+                'class' => AccessControl::className(),
+                'only' => ['gen-data'],
+                'rules' => [
+                    [
+                        'allow' => true,
+                        'roles' => ['Admin'],
+                    ],
+                ],
+            ],
+            'verbs' => [
+                'class' => VerbFilter::className(),
+                'actions' => [
+                    'gen-data' => ['post'],
+                ],
+            ],
+        ];
+    }
 
     public function actionJsonTambon() {
        $sql = "  SELECT t.tamboncodefull TAM_CODE,t.tambonname TAM_NAME,g.COORDINATES,COUNT(p.CID) POP
@@ -76,12 +101,21 @@ FROM dhdc_population_age_group5 t GROUP BY t.AGE_GROUP_ID ";
             $sql = " SELECT  t.AGE_GROUP_ID,t.AGE_GROUP,SUM(t.MALE) MALE,SUM(t.FEMALE) FEMALE ,SUM(t.TOTAL) TOTAL  
 FROM dhdc_population_age_group t GROUP BY t.AGE_GROUP_ID ";
         } else {
-            $sql5 = " SELECT * FROM dhdc_population_age_group5 where HOSPCODE = $hospcode";
+            if (!preg_match('/^\d{5}$/', (string) $hospcode)) {
+                throw new BadRequestHttpException('Invalid hospital code');
+            }
 
-            $sql = " SELECT * FROM dhdc_population_age_group where HOSPCODE = $hospcode";
+            $sql5 = "SELECT * FROM dhdc_population_age_group5 WHERE HOSPCODE = :hospcode";
+            $sql = "SELECT * FROM dhdc_population_age_group WHERE HOSPCODE = :hospcode";
         }
-        $raw5 = MyHelper::query_all($sql5);
-        $raw = MyHelper::query_all($sql);
+        if (empty($hospcode)) {
+            $raw5 = MyHelper::query_all($sql5);
+            $raw = MyHelper::query_all($sql);
+        } else {
+            $params = [':hospcode' => (string) $hospcode];
+            $raw5 = \Yii::$app->db->createCommand($sql5, $params)->queryAll();
+            $raw = \Yii::$app->db->createCommand($sql, $params)->queryAll();
+        }
         $dataProvider = new ArrayDataProvider([
             'allModels' => $raw,
             'pagination' => [
@@ -97,8 +131,9 @@ FROM dhdc_population_age_group t GROUP BY t.AGE_GROUP_ID ";
     }
 
     public function actionGenData() {
-        $this->genData5();
-        $this->genData();
+        throw new NotFoundHttpException(
+            'Population data generation is available through the protected Transform workflow only.'
+        );
     }
 
     protected function genData() {

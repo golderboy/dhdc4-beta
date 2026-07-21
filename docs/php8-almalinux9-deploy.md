@@ -35,14 +35,42 @@ Migration `m260707_162500_php8_43file_compatibility` จะทำสิ่งต
 ให้ source ด้วย session mode เดียวกับ legacy workflow:
 
 ```bash
-mariadb --host=127.0.0.1 --port=33061 --user=root --password=REDACTED_SECRET_8D969EEF6ECA --database=dhdc4 --default-character-set=utf8 \
+mariadb --host="$DHDC_DB_HOST" --port="$DHDC_DB_PORT" --user="$DHDC_DB_USER" --password --database="$DHDC_DB_NAME" --default-character-set=utf8 \
   --init-command="SET SESSION sql_mode=''; SET NAMES utf8 COLLATE utf8_general_ci; SET SESSION character_set_collations='utf8mb3=utf8mb3_general_ci,utf8mb4=utf8mb4_general_ci'" \
   --execute="source D:/xampp/htdocs/dhdc4/db_function.sql"
 ```
 
 บน AlmaLinux ให้เปลี่ยน path และ credential ให้ตรงกับ server จริง เช่น `/var/www/dhdc4/db_function.sql`
 
+## Production secrets
+
+ห้ามเก็บรหัสผ่านฐานข้อมูลไว้ใน Git หรือส่งรหัสผ่านผ่าน command line ให้กำหนด environment variables อย่างน้อยดังนี้:
+
+```bash
+DHDC_DB_DSN='mysql:host=127.0.0.1;dbname=dhdc4;port=3306'
+DHDC_DB_HOST='127.0.0.1'
+DHDC_DB_PORT='3306'
+DHDC_DB_NAME='dhdc4'
+DHDC_DB_USER='dhdc_app'
+DHDC_DB_PASSWORD='<load-from-secret-store>'
+DHDC_MAILER_DSN='smtps://user:password@smtp.example.go.th:465'
+DHDC_FRONTEND_COOKIE_VALIDATION_KEY='<generate-at-least-32-random-characters>'
+DHDC_BACKEND_COOKIE_VALIDATION_KEY='<generate-a-different-random-key>'
+```
+
+บัญชี `DHDC_DB_USER` ต้องเป็น service account เฉพาะฐานข้อมูล DHDC4 และต้องไม่มี global privilege หรือ `GRANT OPTION`
+ใช้ `docs/database-service-account.sql.example` เป็น template สำหรับสร้างบัญชี จากนั้นตรวจ `SHOW GRANTS` ก่อนเปิดระบบ
+
+ก่อนติดตั้ง dependency หรือรัน migration ให้ initialize production template เพื่อสร้าง cookie validation keys ใหม่สำหรับเครื่องนั้น:
+
+```bash
+php init --env=Production --overwrite=All
+composer install --no-dev --classmap-authoritative --no-interaction
+```
+
 ## Apache / PHP
+
+Production ต้องเปิดผ่าน HTTPS เท่านั้น ใช้ `docs/apache-dhdc4.conf.example` เป็น template แล้วแทน hostname และ certificate path ให้ตรงกับเครื่องจริง ห้ามตั้ง `DocumentRoot` เป็น `/var/www/dhdc4`
 
 ตัวอย่าง virtual host:
 

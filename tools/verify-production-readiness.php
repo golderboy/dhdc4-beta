@@ -190,6 +190,9 @@ if (!is_array($composerJson)) {
     if (($require['yiisoft/yii2-symfonymailer'] ?? null) !== '^2.0.4') {
         addFailure($failures, 'composer.json must require reviewed yiisoft/yii2-symfonymailer major line ^2.0.4');
     }
+    if (!isset($composerJson['scripts']['test'])) {
+        addFailure($failures, 'composer.json must expose the unit test command');
+    }
 }
 
 $packageJson = json_decode($packageJsonRaw, true);
@@ -207,6 +210,7 @@ if (filter_var(getenv('DHDC_ALLOW_PHPINFO'), FILTER_VALIDATE_BOOLEAN)) {
     addFailure($failures, 'DHDC_ALLOW_PHPINFO is true in the current environment');
 }
 
+runCheck('Production initializer verifier', 'php ' . escapeshellarg($root . DIRECTORY_SEPARATOR . 'tools' . DIRECTORY_SEPARATOR . 'verify-production-init.php'), $failures, $warnings);
 runCheck('OWASP regression verifier', 'php ' . escapeshellarg($root . DIRECTORY_SEPARATOR . 'tools' . DIRECTORY_SEPARATOR . 'verify-owasp-security.php'), $failures, $warnings);
 runCheck('Composer vulnerability audit', 'composer audit --abandoned=ignore --format=plain', $failures, $warnings);
 runCheck('NPM vulnerability audit', 'npm audit --audit-level=moderate', $failures, $warnings);

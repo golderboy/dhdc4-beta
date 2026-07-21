@@ -1,0 +1,12 @@
+Options -Indexes
+
+RewriteEngine On
+
+# This repository must be served through frontend/web or backend/web only.
+# Keep a fail-closed guard here for legacy installations whose DocumentRoot
+# still points at the project root.
+RewriteRule "(^|/)\." - [F,L]
+RewriteRule ^(?:frontend|backend)/(?!web(?:/|$)) - [F,L,NC]
+RewriteRule ^(?:common|components|console|docs|environments|modules|tools|update|version|vendor|node_modules|output|_codex_backup)(?:/|$) - [F,L,NC]
+RewriteRule ^(?:yii|yii\.bat|init|init\.bat|requirements\.php|chmod\.php)$ - [F,L,NC]
+RewriteRule ^(?!index\.php$)[^/]+\.(?:php|phar|sql|rar|zip|log|ini|env|json|lock|md|yml|yaml|xml)$ - [F,L,NC]

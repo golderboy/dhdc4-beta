@@ -71,6 +71,10 @@ Yii::$app->user->login($identity, 0);
 $session = Yii::$app->session;
 $sessionId = $session->id;
 $sessionName = $session->name;
+$sessionSavePath = $session->getSavePath();
+$sessionFile = $sessionSavePath !== ''
+    ? rtrim($sessionSavePath, '/\\') . DIRECTORY_SEPARATOR . 'sess_' . $sessionId
+    : '';
 $userId = Yii::$app->user->id;
 $canAccess = Yii::$app->user->can($role);
 $session->close();
@@ -78,6 +82,7 @@ $session->close();
 echo json_encode([
     'sessionName' => $sessionName,
     'sessionId' => $sessionId,
+    'sessionFile' => $sessionFile,
     'userId' => $userId,
     'username' => $username,
     'role' => $role,

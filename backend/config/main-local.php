@@ -1,16 +1,28 @@
 <?php
 
+$cookieValidationKey = getenv('DHDC_BACKEND_COOKIE_VALIDATION_KEY');
+if ($cookieValidationKey === false || $cookieValidationKey === '') {
+    $cookieKeyFile = __DIR__ . '/cookie-validation-key.php';
+    if (!is_file($cookieKeyFile)) {
+        throw new RuntimeException(
+            'DHDC_BACKEND_COOKIE_VALIDATION_KEY is required. Run php tools/create-cookie-key-file.php --app=backend for local development.'
+        );
+    }
+    $cookieValidationKey = require $cookieKeyFile;
+}
+if (!is_string($cookieValidationKey) || strlen($cookieValidationKey) < 32) {
+    throw new RuntimeException('Backend cookie validation key must contain at least 32 characters.');
+}
+
 $config = [
     'components' => [
         'request' => [
-            // !!! insert a secret key in the following (if it is empty) - this is required by cookie validation
-            'cookieValidationKey' => 'REDACTED_SECRET_F22EB3CCB327',
+            'cookieValidationKey' => $cookieValidationKey,
         ],
     ],
 ];
 
 if (YII_ENV_DEV && !YII_ENV_TEST) {
-    // configuration adjustments for 'dev' environment
     $config['bootstrap'][] = 'debug';
     $config['modules']['debug'] = [
         'class' => 'yii\debug\Module',

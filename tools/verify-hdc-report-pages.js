@@ -13,7 +13,7 @@ function slug(value) {
   return String(value).replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "").toLowerCase() || "report";
 }
 
-function fetchReports(moduleName, limit) {
+function fetchReports(moduleName) {
   const sql = moduleName === "hdcex"
     ? "SELECT ex_id AS id, title AS report_name FROM sys_data_exchange WHERE active=1 ORDER BY cat_id, weight, ex_id"
     : "SELECT r.id, r.report_name FROM sys_report_dhdc r INNER JOIN hdc_rpt_sql s ON s.rpt_id = r.id WHERE r.id NOT IN (SELECT id FROM sys_report_drop) ORDER BY r.report_id, r.id";
@@ -30,8 +30,21 @@ echo json_encode($rows, JSON_UNESCAPED_UNICODE);
   if (result.status !== 0) {
     throw new Error(result.stderr || result.stdout || "Unable to fetch HDC reports");
   }
-  const rows = JSON.parse(result.stdout);
-  return limit > 0 ? rows.slice(0, limit) : rows;
+  return JSON.parse(result.stdout);
+}
+
+function selectReports(reports, limit) {
+  if (limit <= 0 || limit >= reports.length) {
+    return reports;
+  }
+  if (limit === 1) {
+    return [reports[0]];
+  }
+
+  return Array.from({ length: limit }, (_, index) => {
+    const reportIndex = Math.round(index * (reports.length - 1) / (limit - 1));
+    return reports[reportIndex];
+  });
 }
 
 function createTestSession(username) {
@@ -44,6 +57,21 @@ function createTestSession(username) {
     throw new Error(result.stderr || result.stdout || "Unable to create Yii test session");
   }
   return JSON.parse(result.stdout);
+}
+
+function removeTestSession(session) {
+  if (!session || !session.sessionFile || !session.sessionId) {
+    return;
+  }
+
+  const expectedName = `sess_${session.sessionId}`;
+  const sessionFile = path.resolve(session.sessionFile);
+  if (path.basename(sessionFile) !== expectedName) {
+    throw new Error("Refusing to remove an unexpected Yii session path");
+  }
+  if (fs.existsSync(sessionFile)) {
+    fs.unlinkSync(sessionFile);
+  }
 }
 
 async function gotoPage(page, url) {
@@ -141,19 +169,37 @@ async function inspectPage(page) {
   const authSession = readArg("auth-session", "");
   const onlyId = readArg("only-id", "");
   const limit = Number(readArg("limit", "0")) || 0;
+  const requestedViewports = new Set(
+    readArg("viewports", "mobile,tablet,desktop,wide")
+      .split(",")
+      .map((name) => name.trim().toLowerCase())
+      .filter(Boolean),
+  );
   const screenshotMode = readArg("screenshots", "failures");
-  const fetchedReports = fetchReports(moduleName, 0);
-  const filteredReports = onlyId ? fetchedReports.filter((report) => report.id === onlyId) : fetchedReports;
-  const reports = limit > 0 ? filteredReports.slice(0, limit) : filteredReports;
+  const fetchedReports = fetchReports(moduleName);
+  const filteredReports = onlyId
+    ? fetchedReports.filter((report) => String(report.id) === String(onlyId))
+    : fetchedReports;
+  const reports = selectReports(filteredReports, limit);
   if (onlyId && reports.length === 0) {
     throw new Error(`No ${moduleName} report found for --only-id=${onlyId}`);
   }
-  const viewports = [
+  const availableViewports = [
     { name: "mobile", width: 390, height: 844 },
     { name: "tablet", width: 768, height: 1024 },
     { name: "desktop", width: 1366, height: 900 },
     { name: "wide", width: 1440, height: 1000 },
   ];
+  const unknownViewports = [...requestedViewports].filter(
+    (name) => !availableViewports.some((viewport) => viewport.name === name),
+  );
+  if (unknownViewports.length > 0) {
+    throw new Error(`Unknown --viewports value(s): ${unknownViewports.join(", ")}`);
+  }
+  const viewports = availableViewports.filter((viewport) => requestedViewports.has(viewport.name));
+  if (viewports.length === 0) {
+    throw new Error("At least one viewport is required via --viewports");
+  }
 
   fs.mkdirSync(outputDir, { recursive: true });
 
@@ -183,6 +229,7 @@ async function inspectPage(page) {
 
       for (let index = 0; index < reports.length; index += 1) {
         const report = reports[index];
+        console.log(`[${viewport.name}] ${index + 1}/${reports.length} ${report.id}`);
         const params = moduleName === "hdcex"
           ? new URLSearchParams({ ex_id: report.id, title: report.report_name || report.id, hospcode: sampleHospcode })
           : new URLSearchParams({ id: report.id, rpt: report.report_name || report.id, hospcode: sampleHospcode });
@@ -238,9 +285,10 @@ async function inspectPage(page) {
     }
   } finally {
     await browser.close();
+    removeTestSession(session);
   }
 
-  const reportPath = path.join(outputDir, "hdc-report-pages.json");
+  const reportPath = path.join(outputDir, `${moduleName}-report-pages.json`);
   fs.writeFileSync(reportPath, JSON.stringify({
     baseUrl,
     module: moduleName,
@@ -250,7 +298,7 @@ async function inspectPage(page) {
       sessionName: session.sessionName,
       userId: session.userId,
       username: session.username,
-      canAccessUserRole: session.canAccessUserRole,
+      canAccessRole: session.canAccessRole,
     } : null,
     results,
     failures,
