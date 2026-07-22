@@ -91,6 +91,20 @@ try {
             Pop-Location
         }
 
+        # The production initializer verifier keeps a rollback copy beside the
+        # checkout it tests. That evidence belongs to the build workspace, not
+        # to the distributable application archive.
+        $verificationBackup = Join-Path $releaseRoot "_codex_backup"
+        if (Test-Path -LiteralPath $verificationBackup) {
+            Remove-Item -LiteralPath $verificationBackup -Recurse -Force
+        }
+
+        foreach ($generatedPath in @("_codex_backup", "output", "node_modules")) {
+            if (Test-Path -LiteralPath (Join-Path $releaseRoot $generatedPath)) {
+                throw "Release contains generated build path: $generatedPath"
+            }
+        }
+
         tar.exe -a -c -f $archivePath -C $stagingRoot $releaseName
         if ($LASTEXITCODE -ne 0) {
             throw "Unable to create the release ZIP."
