@@ -25,7 +25,7 @@ $options = getopt('', [
     'no-archive',
 ]);
 
-$version = (string) ($options['version'] ?? 'v4.0.1');
+$version = (string) ($options['version'] ?? 'v4.0.2');
 if (!preg_match('/^v\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/', $version)) {
     fail("Invalid semantic version: {$version}");
 }

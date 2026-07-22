@@ -35,14 +35,15 @@ local-infile=1
 event-scheduler=OFF
 ```
 
-restart และตรวจค่า:
+restart และตรวจค่า รวมถึงพอร์ตกับตำแหน่ง Unix socket ที่ MariaDB ใช้งานจริง:
 
 ```bash
 sudo systemctl restart mariadb
-sudo mariadb -e "SELECT @@version, @@global.local_infile, @@global.event_scheduler;"
+sudo mariadb --protocol=socket --batch --skip-column-names \
+  -e "SELECT @@version; SELECT @@port; SELECT @@socket; SELECT @@global.local_infile; SELECT @@global.event_scheduler;"
 ```
 
-ค่า `local_infile` ต้องเป็น `1` และ `event_scheduler` ต้องเป็น `OFF`
+จดค่า `@@port` และ `@@socket` ที่แสดงจากเครื่องจริง ห้ามสมมติว่าทุกเครื่องใช้พอร์ต `3306` ค่า `local_infile` ต้องเป็น `1` และ `event_scheduler` ต้องเป็น `OFF`
 
 ## 3. วางและตรวจชุดติดตั้งฐานข้อมูล
 
@@ -51,14 +52,24 @@ sudo mariadb -e "SELECT @@version, @@global.local_infile, @@global.event_schedul
 ```bash
 sudo install -d -m 0700 /opt/dhdc4-install
 cd /opt/dhdc4-install
-sha256sum -c dhdc4-database-installer-v4.0.1.zip.sha256
-unzip dhdc4-database-installer-v4.0.1.zip
-cd dhdc4-database-installer-v4.0.1
+sha256sum -c dhdc4-database-installer-v4.0.2.zip.sha256
+unzip dhdc4-database-installer-v4.0.2.zip
+cd dhdc4-database-installer-v4.0.2
 chmod 700 install-linux.sh
 ./install-linux.sh --dry-run
 ```
 
-ต้องจบด้วย `Dry-run completed` หากไม่ผ่าน ให้แก้ตามข้อความก่อนทำขั้นต่อไป
+`--dry-run` ตรวจเฉพาะไฟล์และส่วนประกอบโดยไม่เชื่อมต่อฐานข้อมูล จึงยังไม่ตรวจพอร์ต ต้องจบด้วย `Dry-run completed` หากไม่ผ่าน ให้แก้ตามข้อความก่อนทำขั้นต่อไป
+
+ตรวจการเชื่อมต่อ พอร์ต และ socket จริงโดยยังไม่เปลี่ยนฐานข้อมูล:
+
+```bash
+sudo -i
+cd /opt/dhdc4-install/dhdc4-database-installer-v4.0.2
+./install-linux.sh --check-connection
+```
+
+เมื่อถามรหัสผ่านบัญชีผู้ดูแล MariaDB ให้กด Enter หากใช้ Unix socket authentication ตัวติดตั้งจะอ่าน `@@port` จาก MariaDB และแสดงบรรทัด `MariaDB connection verified` กับพอร์ตที่ต้องนำไปใช้ใน `/etc/dhdc4/dhdc4.env`
 
 ## 4. ติดตั้งฐานข้อมูลและสร้าง MariaDB user
 
@@ -66,11 +77,30 @@ chmod 700 install-linux.sh
 
 ```bash
 sudo -i
-cd /opt/dhdc4-install/dhdc4-database-installer-v4.0.1
+cd /opt/dhdc4-install/dhdc4-database-installer-v4.0.2
 ./install-linux.sh
 ```
 
-เมื่อถามรหัสผ่าน MariaDB root ให้กด Enter หากเครื่องใช้ socket authentication จากนั้นตั้งรหัสผ่านใหม่สำหรับ `'dhdc4'@'localhost'` อย่างน้อย 32 ตัวอักษรและเก็บใน password manager
+เมื่อถามรหัสผ่านบัญชีผู้ดูแล MariaDB ให้กด Enter หากเครื่องใช้ socket authentication จากนั้นตั้งรหัสผ่านใหม่สำหรับ `'dhdc4'@'localhost'` อย่างน้อย 32 ตัวอักษรและเก็บใน password manager
+
+ตัวติดตั้งใช้โหมด `auto` เป็นค่าเริ่มต้น โดยลอง Unix socket ก่อนและอ่านพอร์ตจริงจาก `@@port` ไม่กำหนด `3306` เอง หาก socket อยู่ตำแหน่งพิเศษให้ระบุ:
+
+```bash
+DHDC4_DB_SOCKET='/run/mariadb/custom.sock' ./install-linux.sh --check-connection
+DHDC4_DB_SOCKET='/run/mariadb/custom.sock' ./install-linux.sh
+```
+
+หากต้องเชื่อมต่อผ่าน TCP ให้ระบุ protocol, host และพอร์ตจริงอย่างชัดเจน:
+
+```bash
+DHDC4_DB_PROTOCOL=tcp \
+DHDC4_DB_HOST=127.0.0.1 \
+DHDC4_DB_PORT='<พอร์ตจริง>' \
+DHDC4_DB_ROOT_USER='<บัญชีผู้ดูแล MariaDB>' \
+./install-linux.sh --check-connection
+```
+
+ถ้ากำหนด `DHDC4_DB_PORT` แล้วค่าไม่ตรงกับ `@@port` ของ MariaDB ตัวติดตั้งจะหยุดโดยไม่แก้ฐานข้อมูล
 
 ตัวติดตั้งจะทำ `CREATE USER`, `ALTER USER` และ `GRANT` ให้อัตโนมัติ เมื่อติดตั้งเสร็จต้องเห็น `DHDC4_VERIFY PASS`
 
@@ -130,9 +160,9 @@ sudoedit /etc/dhdc4/dhdc4.env
 ใส่ค่าต่อไปนี้โดยแทนข้อความตัวอย่างด้วยค่าจริง ห้ามนำไฟล์นี้เข้า Git:
 
 ```bash
-DHDC_DB_DSN='mysql:host=localhost;dbname=dhdc4;port=3306'
+DHDC_DB_DSN='mysql:host=localhost;dbname=dhdc4;port=<พอร์ตที่ตัวติดตั้งตรวจพบ>'
 DHDC_DB_HOST='localhost'
-DHDC_DB_PORT='3306'
+DHDC_DB_PORT='<พอร์ตที่ตัวติดตั้งตรวจพบ>'
 DHDC_DB_NAME='dhdc4'
 DHDC_DB_USER='dhdc4'
 DHDC_DB_PASSWORD='ใส่รหัสผ่านฐานข้อมูลจริง'
@@ -245,6 +275,7 @@ sudo systemctl enable --now httpd
 - ไม่มี SQL, backup, log, `.env` หรือ config ถูกเปิดผ่าน URL
 - Apache ใช้ HTTPS, redirect HTTP ไป HTTPS และส่ง HSTS หลังตรวจ certificate จริงแล้ว
 - MariaDB `event_scheduler` ยังเป็น `OFF` จนกว่าจะตรวจ timezone และ `event_dhdc`
+- `DHDC_DB_PORT` และ port ใน `DHDC_DB_DSN` ตรงกับ `SELECT @@port` ของ MariaDB เครื่องจริง
 - ตั้ง backup schedule, log rotation และ monitoring แล้ว
 
 หากข้อใดไม่ผ่าน ให้หยุด Apache ด้วย `sudo systemctl stop httpd` และแก้ให้ผ่านก่อนเปิดใช้งานจริง

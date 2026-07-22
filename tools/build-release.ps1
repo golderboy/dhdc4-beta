@@ -1,5 +1,5 @@
 param(
-    [string]$Tag = "v4.0.0",
+    [string]$Tag = "v4.0.2",
     [string]$OutputDirectory = "output/release"
 )
 

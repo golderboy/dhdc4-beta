@@ -1,12 +1,13 @@
 param(
     [string]$PackageDirectory = $PSScriptRoot,
     [string]$DbHost = $(if ($env:DHDC4_DB_HOST) { $env:DHDC4_DB_HOST } else { 'localhost' }),
-    [int]$DbPort = $(if ($env:DHDC4_DB_PORT) { [int]$env:DHDC4_DB_PORT } else { 3306 }),
+    [int]$DbPort = $(if ($env:DHDC4_DB_PORT) { [int]$env:DHDC4_DB_PORT } else { 0 }),
     [string]$DbName = $(if ($env:DHDC4_DB_NAME) { $env:DHDC4_DB_NAME } else { 'dhdc4' }),
     [string]$RootUser = $(if ($env:DHDC4_DB_ROOT_USER) { $env:DHDC4_DB_ROOT_USER } else { 'root' }),
     [string]$MariaDbBin = $env:DHDC4_MARIADB_BIN,
     [string]$BackupDirectory,
     [switch]$DryRun,
+    [switch]$CheckConnection,
     [switch]$Recreate,
     [switch]$ConfirmRecreate,
     [switch]$AllowPasswordlessRoot
@@ -14,6 +15,13 @@ param(
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
+
+if ($DbPort -lt 0 -or $DbPort -gt 65535) {
+    throw 'DbPort must be an integer from 1 to 65535.'
+}
+if ($DbPort -eq 0 -and -not $DryRun) {
+    throw 'MariaDB port was not supplied. Set -DbPort to the value returned by SELECT @@port or set DHDC4_DB_PORT.'
+}
 
 function Get-PlainSecret {
     param([string]$EnvironmentName, [string]$Prompt, [switch]$AllowEmpty)
@@ -59,7 +67,12 @@ function New-DbProcessInfo {
     $utf8 = New-Object Text.UTF8Encoding($false)
     $info.StandardOutputEncoding = $utf8
     $info.StandardErrorEncoding = $utf8
-    $info.EnvironmentVariables['MYSQL_PWD'] = $Password
+    if ([string]::IsNullOrEmpty($Password)) {
+        $null = $info.EnvironmentVariables.Remove('MYSQL_PWD')
+    }
+    else {
+        $info.EnvironmentVariables['MYSQL_PWD'] = $Password
+    }
     return $info
 }
 
@@ -281,6 +294,8 @@ if ($drive.Free -lt ($packageBytes * 3)) { throw 'Free disk space is below three
 
 Write-InstallMessage "Package verification passed: $($sqlParts.Count) SQL parts, database=$DbName, owner=dhdc4@localhost"
 if ($DryRun) {
+    $portDisplay = if ($DbPort -eq 0) { 'not-supplied' } else { [string]$DbPort }
+    Write-InstallMessage "Connection configuration: protocol=TCP host=$DbHost port=$portDisplay"
     Write-InstallMessage 'Dry-run completed. No database connection or mutation was attempted.'
     return
 }
@@ -288,11 +303,33 @@ if ($DryRun) {
 $rootPassword = if ($AllowPasswordlessRoot) {
     ''
 } else {
-    Get-PlainSecret 'DHDC4_DB_ROOT_PASSWORD' 'MariaDB root password' -AllowEmpty
+    Get-PlainSecret 'DHDC4_DB_ROOT_PASSWORD' "MariaDB administrator password for '$RootUser'" -AllowEmpty
 }
 $rootArguments = Get-DatabaseArguments $RootUser
+$connectionOutput = Invoke-MariaDbInput $client $rootArguments $rootPassword -PrefixSql "SELECT CONCAT(@@port, '|', @@socket);"
+$connectionParts = $connectionOutput.Trim().Split('|', 2)
+if ($connectionParts.Count -ne 2 -or $connectionParts[0] -notmatch '^\d+$') {
+    throw "MariaDB returned invalid connection information: $connectionOutput"
+}
+$detectedPort = [int]$connectionParts[0]
+if ($detectedPort -ne $DbPort) {
+    throw "Configured DbPort=$DbPort does not match the running MariaDB port $detectedPort. Nothing was changed."
+}
+Write-InstallMessage "MariaDB connection verified: protocol=TCP host=$DbHost port=$detectedPort socket=$($connectionParts[1]) administrator=$RootUser"
+Write-InstallMessage "Use DHDC_DB_PORT='$detectedPort' in the DHDC4 environment configuration."
+
 $existsOutput = Invoke-MariaDbInput $client $rootArguments $rootPassword -PrefixSql "SELECT COUNT(*) FROM information_schema.SCHEMATA WHERE SCHEMA_NAME='$DbName';"
 $databaseExists = [int]$existsOutput.Trim() -gt 0
+
+$settingsOutput = Invoke-MariaDbInput $client $rootArguments $rootPassword -PrefixSql "SELECT CONCAT(@@GLOBAL.local_infile, '|', @@GLOBAL.event_scheduler);"
+$settings = $settingsOutput.Trim().Split('|')
+if ($settings.Count -ne 2 -or $settings[0] -notin @('1', 'ON')) {
+    throw 'MariaDB local_infile must be enabled before installing DHDC4.'
+}
+if ($CheckConnection) {
+    Write-InstallMessage "Connection check passed: database_exists=$databaseExists local_infile=ON event_scheduler=$($settings[1]). No database mutation was attempted."
+    return
+}
 
 if ($databaseExists) {
     if (-not $Recreate) {
@@ -309,11 +346,6 @@ if ($ownerPassword.Length -lt 32) {
     throw "Password for 'dhdc4'@'localhost' must contain at least 32 characters."
 }
 
-$settingsOutput = Invoke-MariaDbInput $client $rootArguments $rootPassword -PrefixSql "SELECT CONCAT(@@GLOBAL.local_infile, '|', @@GLOBAL.event_scheduler);"
-$settings = $settingsOutput.Trim().Split('|')
-if ($settings.Count -ne 2 -or $settings[0] -notin @('1', 'ON')) {
-    throw 'MariaDB local_infile must be enabled before installing DHDC4.'
-}
 Invoke-MariaDbInput $client $rootArguments $rootPassword -PrefixSql 'SET GLOBAL event_scheduler=OFF;' | Out-Null
 Write-InstallMessage "MariaDB preflight: local_infile=ON, event_scheduler changed from $($settings[1]) to OFF"
 

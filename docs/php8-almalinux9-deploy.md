@@ -56,9 +56,9 @@ mariadb --host="$DHDC_DB_HOST" --port="$DHDC_DB_PORT" --user="$DHDC_DB_USER" --p
 ห้ามเก็บรหัสผ่านฐานข้อมูลไว้ใน Git หรือส่งรหัสผ่านผ่าน command line ให้กำหนด environment variables อย่างน้อยดังนี้:
 
 ```bash
-DHDC_DB_DSN='mysql:host=127.0.0.1;dbname=dhdc4;port=3306'
+DHDC_DB_DSN='mysql:host=127.0.0.1;dbname=dhdc4;port=<ค่าจาก SELECT @@port>'
 DHDC_DB_HOST='127.0.0.1'
-DHDC_DB_PORT='3306'
+DHDC_DB_PORT='<ค่าจาก SELECT @@port>'
 DHDC_DB_NAME='dhdc4'
 DHDC_DB_USER='dhdc_app'
 DHDC_DB_PASSWORD='<load-from-secret-store>'
@@ -206,7 +206,7 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
 
 ```powershell
 npm run verify:map-runtime
-.\tools\build-release.ps1 -Tag v4.0.0
+.\tools\build-release.ps1 -Tag v4.0.2
 ```
 
 ก่อนส่งงานหรือ deploy ให้รัน gate รวมนี้เป็นคำสั่งหลัก โดยส่ง credential ผ่าน parameter และไม่บันทึกรหัสผ่านลงไฟล์:
