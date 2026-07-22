@@ -72,9 +72,9 @@ php tools/prepare-master-baseline.php --verify
 - [x] ไม่มี tracked file ขนาดตั้งแต่ 5 MB ขึ้นไป
 - [x] มีเฉพาะ source asset; generated asset และ runtime ถูก ignore
 - [x] โฟลเดอร์ `fortythreebackup` มี marker file และ payload ภายในถูก ignore
-- [ ] Working tree ต้องสะอาดหลัง commit
-- [ ] Branch `main` และ tag `v4.0.0` ต้องชี้ไปยัง commit ที่ผ่าน strict release gate
-- [ ] ต้องตรวจ fresh clone และ release ZIP ซ้ำหลัง push
+- [x] Working tree สะอาดหลัง commit
+- [x] Branch `main` และ tag `v4.0.0` ชี้ไปยัง commit ที่ผ่าน strict release gate
+- [x] ตรวจ fresh clone และ release ZIP ซ้ำหลัง push แล้ว
 
 ## 6. ผลทดสอบก่อน commit
 
