@@ -5,7 +5,7 @@
 ## เป้าหมายขั้นต่ำ
 
 - PHP 8.2 ขึ้นไป พร้อม extension ที่ Yii2 ใช้ เช่น `pdo_mysql`, `mbstring`, `intl`, `gd`, `zip`, `fileinfo`, `openssl`
-- MariaDB/MySQL ที่เปิด `local_infile`
+- MariaDB/MySQL ที่เปิด `local_infile` และกำหนด `character-set-collations` ให้ `utf8mb3` ใช้ `utf8mb3_general_ci`
 - Database charset/collation หลักเป็น `utf8mb3` / `utf8mb3_general_ci`
 - Apache document root ชี้ไปที่ `frontend/web` และ `backend/web` ตาม virtual host ที่แยกกัน
 - Composer dependencies ติดตั้งจาก `composer.lock`
@@ -24,6 +24,15 @@ Migration `m260707_162500_php8_43file_compatibility` จะทำสิ่งต
 - เพิ่มคอลัมน์ที่จำเป็นสำหรับไฟล์ 43 รุ่นปัจจุบัน เช่น `WEIGHT`, `HSUB`, `PROVIDER`, `LENGTH`, `HEADCIRCUM`, `HEIGHT`, `CHRONICFUPLACE`
 - เพิ่มทั้งตาราง raw และ `dhdc_tmp_*` ที่เกี่ยวข้อง
 - ไม่ลบข้อมูลเดิม และไม่แก้ business logic
+
+MariaDB 12.2 เปลี่ยน default collation ของ `utf8mb3` เป็น UCA1400 แต่ Transform เดิมของ DHDC4 สร้างตารางด้วย `DEFAULT CHARSET=utf8` และ join กับตาราง `utf8mb3_general_ci` จึงต้องกำหนด mapping ที่ระดับ server ก่อนรัน Transform ตัวอย่างใน `my.cnf`/`my.ini`:
+
+```ini
+[mysqld]
+character-set-collations=utf8mb3=utf8mb3_general_ci,utf8mb4=utf8mb4_uca1400_ai_ci,ucs2=ucs2_uca1400_ai_ci,utf16=utf16_uca1400_ai_ci,utf32=utf32_uca1400_ai_ci
+```
+
+หลัง restart ให้ตรวจ `SELECT @@global.character_set_collations;` ว่ามี `utf8mb3=utf8mb3_general_ci` ก่อนเรียก `sys_transform_all`
 
 ## Restore Stored Procedures / Functions
 
@@ -56,7 +65,6 @@ DHDC_DB_PASSWORD='<load-from-secret-store>'
 DHDC_MAILER_DSN='smtps://user:password@smtp.example.go.th:465'
 DHDC_FRONTEND_COOKIE_VALIDATION_KEY='<generate-at-least-32-random-characters>'
 DHDC_BACKEND_COOKIE_VALIDATION_KEY='<generate-a-different-random-key>'
-DHDC_GOOGLE_MAPS_API_KEY='<new-restricted-browser-key>'
 # Optional map services; omit a layer when no verified HTTPS endpoint is available.
 DHDC_RAIN_RADAR_BASE_URL='https://maps.example.go.th/radar'
 DHDC_FLOOD_WMS_BASE_URL='https://maps.example.go.th/flood/wms'
@@ -65,7 +73,7 @@ DHDC_FLOOD_PERCENT_WMS_BASE_URL='https://maps.example.go.th/flood-percent/wms'
 DHDC_SMARTCARD_BASE_URL='http://127.0.0.1:8080/smartcard'
 ```
 
-Google Maps key ต้องเป็น key ใหม่หลังเพิกถอน key ที่เคยฝังใน source code และต้องจำกัดทั้ง HTTP referrer ของ frontend จริงและ API scope ที่ระบบใช้ ห้ามนำ key เดิมกลับมาใช้ ส่วนชั้นข้อมูลแผนที่ที่ไม่มี HTTPS จะถูกปิดโดยอัตโนมัติแทนการโหลด mixed content
+โปรแกรมไม่ใช้ Google Maps API/key, Directions API หรือ Google tile layer แล้ว หน้าแผนที่ใช้ OSM เป็นค่าเริ่มต้น เจ้าของระบบยังต้องเพิกถอน key เก่าที่เคยฝังใน source code แต่ไม่ต้องออก key ใหม่ให้ระบบ ส่วนชั้นข้อมูลแผนที่เสริมที่ไม่มี HTTPS จะถูกปิดโดยอัตโนมัติแทนการโหลด mixed content
 
 การ rewrite และ force-push ทำให้ branch/tag หลักไม่อ้างถึงประวัติเก่า แต่ clone, fork, pull request และ cached view อาจยังเก็บ object เดิม ผู้ร่วมพัฒนาต้องทิ้ง clone เก่าหรือ rebase จากประวัติใหม่ และเจ้าของ repository ต้องติดต่อ GitHub Support หากต้องล้าง reference/cached view ที่ยังอ้างถึง secret
 
@@ -116,6 +124,7 @@ Template บังคับ TLS 1.2/1.3, ซ่อนรายละเอีย
 - `local_infile=ON`
 - `max_allowed_packet` เพียงพอกับ ZIP/43 แฟ้ม
 - `character_set_collations` รองรับ `utf8mb3=utf8mb3_general_ci`
+- `t_person_db` และตารางที่ Transform สร้างใหม่ต้องไม่เป็น `utf8mb3_uca1400_ai_ci`
 - PHP upload/post limits ใหญ่พอสำหรับไฟล์ ZIP จริง
 - สิทธิ์เขียนได้ที่ `frontend/runtime`, `backend/runtime`, `console/runtime`, `frontend/web/assets`, `backend/web/assets`, `frontend/web/fortythree`, `frontend/web/fortythreebackup`, `frontend/web/unzip`
 
@@ -133,6 +142,15 @@ Template บังคับ TLS 1.2/1.3, ซ่อนรายละเอีย
 8. `sys_process_running.is_running = false`
 9. `last_transform.last_time` และ `last_err_check.last_time` เป็นเวลาปัจจุบัน
 10. หน้า `/qc/default/index` และ `/hdc/default/index` เปิดได้
+
+ทดสอบกู้ physical backup ใน datadir แยกแบบ read-only ด้วย:
+
+```powershell
+.\tools\verify-database-backup-restore.ps1 `
+  -BackupDirectory <prepared-backup-directory> `
+  -RestoreDirectory <new-empty-restore-directory> `
+  -SecretFile <database-admin-secret-file>
+```
 
 ## UI Non-Regression Gate
 

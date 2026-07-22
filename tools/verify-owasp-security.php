@@ -360,6 +360,10 @@ foreach ($mapViews as $mapView) {
         'http://aratcliffe.github.io',
         'http://203.157.',
         'http://{s}.google.com',
+        'maps.googleapis.com',
+        '.google.com/vt/',
+        'google.maps.',
+        'DHDC_GOOGLE_MAPS_API_KEY',
         'http://rain.tvis.in.th',
         'ajax.googleapis.com/ajax/libs/jquery',
         'maxcdn.bootstrapcdn.com/bootstrap',
@@ -372,10 +376,7 @@ foreach ($mapViews as $mapView) {
     }
 
     foreach ([
-        'DHDC_GOOGLE_MAPS_API_KEY',
         'DHDC_RAIN_RADAR_BASE_URL',
-        'leaflet-contextmenu/leaflet.contextmenu.min.js',
-        'polyline/polyline.js',
         'vendor/jquery-3.7.1/jquery.min.js',
         'vendor/bootstrap-3.4.1/js/transition.js',
         'vendor/bootstrap-3.4.1/js/modal.js',
@@ -386,6 +387,7 @@ foreach ($mapViews as $mapView) {
         'vendor/leaflet-hash-0.2.1/leaflet-hash.js',
         'vendor/turf-compat-7.3.5/turf-compat.min.js',
         'escapeHtml(data.properties.title)',
+        '"OSM ถนน": osm_street.addTo(map)',
     ] as $required) {
         if (strpos($contents, $required) === false) {
             $failures[] = "$mapView: expected secure map setting '$required'";
@@ -421,9 +423,6 @@ if (!is_file($populationMapPath)) {
 }
 
 foreach ([
-    'frontend/web/lib/map/leaflet-contextmenu/leaflet.contextmenu.min.css',
-    'frontend/web/lib/map/leaflet-contextmenu/leaflet.contextmenu.min.js',
-    'frontend/web/lib/map/polyline/polyline.js',
     'frontend/web/lib/map/vendor/jquery-3.7.1/jquery.min.js',
     'frontend/web/lib/map/vendor/bootstrap-3.4.1/dist/css/bootstrap.min.css',
     'frontend/web/lib/map/vendor/bootstrap-3.4.1/js/transition.js',

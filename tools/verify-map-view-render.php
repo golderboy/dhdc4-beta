@@ -13,7 +13,6 @@ require $root . '/vendor/autoload.php';
 require $root . '/vendor/yiisoft/yii2/Yii.php';
 
 foreach ([
-    'DHDC_GOOGLE_MAPS_API_KEY',
     'DHDC_RAIN_RADAR_BASE_URL',
     'DHDC_FLOOD_WMS_BASE_URL',
     'DHDC_FLOOD_PERCENT_WMS_BASE_URL',
@@ -42,11 +41,12 @@ $requiredAssets = [
     'vendor/leaflet-locatecontrol-0.43.0/dist/L.Control.Locate.min.js',
     'vendor/leaflet-hash-0.2.1/leaflet-hash.js',
     'vendor/turf-compat-7.3.5/turf-compat.min.js',
-    'leaflet-contextmenu/leaflet.contextmenu.min.js',
-    'polyline/polyline.js',
 ];
 $forbiddenRuntimeSources = [
+    'DHDC_GOOGLE_MAPS_API_KEY',
     'maps.googleapis.com/maps/api/js?key=',
+    '.google.com/vt/',
+    'google.maps.',
     'ajax.googleapis.com/ajax/libs/jquery',
     'maxcdn.bootstrapcdn.com/bootstrap',
     'api.mapbox.com/mapbox.js',
@@ -76,6 +76,9 @@ foreach ([
         if (strpos($html, $forbidden) !== false) {
             throw new RuntimeException("$file rendered forbidden runtime source: $forbidden");
         }
+    }
+    if (strpos($html, '"OSM ถนน": osm_street.addTo(map)') === false) {
+        throw new RuntimeException("$file is missing the key-free default map layer");
     }
     foreach ([
         'var rain = base_url ? L.layerGroup() : null;',

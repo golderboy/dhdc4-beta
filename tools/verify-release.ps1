@@ -110,6 +110,9 @@ SELECT last_time FROM last_err_check LIMIT 1;
 SELECT is_running FROM sys_process_running LIMIT 1;
 SELECT p_name FROM hdc_log ORDER BY id DESC LIMIT 1;
 SELECT fnc_name FROM sys_check_process LIMIT 1;
+SELECT @@global.character_set_collations;
+SELECT TABLE_COLLATION FROM information_schema.TABLES WHERE TABLE_SCHEMA = '$DbName' AND TABLE_NAME = 't_person_db';
+SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = '$DbName' AND TABLE_COLLATION = 'utf8mb3_uca1400_ai_ci';
 "@
         $result = & $DbCli --host=$DbHost --port=$DbPort --user=$DbUser --database=$DbName --batch --raw --skip-column-names --execute=$sql
         Assert-True ($LASTEXITCODE -eq 0) "final database invariant query failed"
@@ -125,6 +128,9 @@ SELECT fnc_name FROM sys_check_process LIMIT 1;
         Assert-True ($result[8] -eq "false") "sys_process_running is not false"
         Assert-True ($result[9] -eq "end") "hdc_log did not end cleanly"
         Assert-True ($result[10] -eq "end") "sys_check_process is not end"
+        Assert-True ([string]$result[11] -like "*utf8mb3=utf8mb3_general_ci*") "MariaDB does not map utf8mb3 to utf8mb3_general_ci"
+        Assert-True ($result[12] -eq "utf8mb3_general_ci") "t_person_db collation is not utf8mb3_general_ci"
+        Assert-True ([int]$result[13] -eq 0) "database contains utf8mb3_uca1400_ai_ci tables"
     }
 
     Write-Output "verify-release: OK"

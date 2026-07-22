@@ -243,6 +243,7 @@ try {
     ) "Authenticated smoke active route list does not match sys_dhdc_plugin"
 
     foreach ($route in $activeFrontendRoutes) {
+        Write-Output "smoke-ui-authenticated: GET active route $route"
         $moduleResponse = Get-Url "$frontendBase$route" $frontendSession
         Assert-True ($moduleResponse.StatusCode -eq 200) "Unexpected HTTP status for active route $route"
         Assert-True ($moduleResponse.BaseResponse.ResponseUri.AbsolutePath -notmatch "/user/login") "Active route redirected to login: $route"

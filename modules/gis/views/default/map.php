@@ -1,12 +1,10 @@
 <?php
 
 use yii\helpers\Url;
-use yii\helpers\Html;
 use yii\helpers\Json;
 use yii\bootstrap\Modal;
 
 $web = \Yii::getAlias('@web');
-$googleMapsApiKey = trim((string) getenv('DHDC_GOOGLE_MAPS_API_KEY'));
 $secureServiceUrl = static function (string $environmentName): string {
     $value = trim((string) getenv($environmentName));
     if ($value === '') {
@@ -34,9 +32,6 @@ $floodPercentWmsBaseUrl = $secureServiceUrl('DHDC_FLOOD_PERCENT_WMS_BASE_URL');
         <link rel="stylesheet" href="<?= $web ?>/css/mui-web/layout.css" />
         <link rel="stylesheet" href="<?= $web ?>/css/mui-web/components.css" />
         <script src="<?= $web ?>/lib/map/vendor/jquery-3.7.1/jquery.min.js"></script>
-        <?php if ($googleMapsApiKey !== ''): ?>
-            <script src="https://maps.googleapis.com/maps/api/js?key=<?= Html::encode(rawurlencode($googleMapsApiKey)) ?>"></script>
-        <?php endif; ?>
         <link rel="stylesheet" href="<?= $web ?>/lib/map/vendor/bootstrap-3.4.1/dist/css/bootstrap.min.css">
         <script src="<?= $web ?>/lib/map/vendor/bootstrap-3.4.1/js/transition.js"></script>
         <script src="<?= $web ?>/lib/map/vendor/bootstrap-3.4.1/js/modal.js"></script>
@@ -59,9 +54,6 @@ $floodPercentWmsBaseUrl = $secureServiceUrl('DHDC_FLOOD_PERCENT_WMS_BASE_URL');
         <link href="<?= $web ?>/lib/map/vendor/font-awesome-4.7.0/css/font-awesome.min.css" rel="stylesheet" />
 
         <script src="<?= $web ?>/js/Leaflet.Control.Custom.js"></script> 
-
-        <link href="<?= $web ?>/lib/map/leaflet-contextmenu/leaflet.contextmenu.min.css" rel="stylesheet"/>
-        <script src="<?= $web ?>/lib/map/leaflet-contextmenu/leaflet.contextmenu.min.js"></script>
 
         <style>
             body { margin:0; padding:0; }
@@ -100,8 +92,6 @@ $floodPercentWmsBaseUrl = $secureServiceUrl('DHDC_FLOOD_PERCENT_WMS_BASE_URL');
 
         <script src="<?= $web ?>/lib/map/vendor/turf-compat-7.3.5/turf-compat.min.js"></script>
 
-        <script src="<?= $web ?>/lib/map/polyline/polyline.js"></script>
-
         <div class="title">DHDC GIS ระบบภูมิสารสนเทศ</div>
         <div id='map'></div>
         <div class="show-latlng">
@@ -115,76 +105,7 @@ $floodPercentWmsBaseUrl = $secureServiceUrl('DHDC_FLOOD_PERCENT_WMS_BASE_URL');
             }
 
 
-// direction
-            var layer_line = L.mapbox.featureLayer();
-            var direction = function (origin, destination) {
-                if (typeof google === 'undefined' || !google.maps) {
-                    return Promise.reject('ยังไม่ได้กำหนด DHDC_GOOGLE_MAPS_API_KEY');
-                }
-                var directionsService = new google.maps.DirectionsService();
-                var directionsRequest = {
-                    origin: origin,
-                    destination: destination,
-                    travelMode: google.maps.DirectionsTravelMode.DRIVING,
-                    unitSystem: google.maps.UnitSystem.METRIC
-                };
-                return new Promise(function (resolve, reject) {
-                    directionsService.route(directionsRequest, function (response, status) {
-                        if (status == google.maps.DirectionsStatus.OK) {
-                            var route = response.routes[0].overview_polyline;
-                            var descript = response.routes[0].legs[0];
-                            var data = {
-                                route: route,
-                                descript: {
-                                    distance: descript.distance.text,
-                                    duration: descript.duration.text
-                                }
-
-                            };
-                            resolve(data)
-                        } else {
-                            reject("ผิดพลาด:" + status)
-                        }
-                    })
-                });
-            };
-
-            function calDirect() {
-                var origin = markerA.getLatLng().lat + ',' + markerA.getLatLng().lng;
-                var destination = markerB.getLatLng().lat + ',' + markerB.getLatLng().lng;
-                direction(origin, destination).then(function (result) {
-                    var json_line = polyline.toGeoJSON(result.route);
-                    layer_line.remove();
-                    layer_line.setGeoJSON(json_line)
-                            .setStyle({
-                                weight: 5,
-                                color: 'blue'
-                            }).addTo(map);
-                    var pop = result.descript.distance + " ," + result.descript.duration;
-                    layer_line.bindPopup('รถยนต์ : ' + pop);
-                    layer_line.openPopup();
-                }, function (err) {
-                    alert(err)
-                });
-            }
-// direction
             //base map
-            var googleHybrid = L.tileLayer('https://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}&hl=th', {
-                maxZoom: 20,
-                subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
-            });
-            var googleStreet = L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&hl=th', {
-                maxZoom: 20,
-                subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
-            });
-            var googleSat = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}&hl=th', {
-                maxZoom: 20,
-                subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
-            });
-            var googleTerrain = L.tileLayer('https://{s}.google.com/vt/lyrs=p&x={x}&y={y}&z={z}&hl=th', {
-                maxZoom: 20,
-                subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
-            });
             var osm_street = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '&copy; OpenStreetMap contributors',
                 maxZoom: 19
@@ -192,58 +113,8 @@ $floodPercentWmsBaseUrl = $secureServiceUrl('DHDC_FLOOD_PERCENT_WMS_BASE_URL');
             var satellite = L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
                 attribution: 'Tiles &copy; Esri'
             });
-            var markerA, markerB;
             var map = L.mapbox.map('map', null, {
-                contextmenu: true,
-                contextmenuWidth: 140,
-                contextmenuItems: [
-                    {
-                        text: 'จากที่นี่',
-                        callback: function (e) {
-                            if (markerA) {
-                                markerA.remove();
-                            }
-                            if (markerB) {
-                                markerB.remove();
-                            }
-                            if (layer_line) {
-                                layer_line.remove();
-                            }
-                            markerA = L.marker(e.latlng, {
-                                'draggable': 'true',
-                                icon: L.mapbox.marker.icon({
-                                    'marker-symbol': 'a'
-                                })
-                            }).addTo(map);
-                        }
-                    },
-                    {
-                        text: 'ถึงที่นี่',
-                        callback: function (e) {
-                            if (!markerA) {
-                                return;
-                            }
-                            if (markerB) {
-                                markerB.remove();
-                            }
-                            markerB = L.marker(e.latlng, {
-                                'draggable': true,
-                                icon: L.mapbox.marker.icon({
-                                    'marker-symbol': 'b'
-                                })
-                            }).addTo(map);
-                            calDirect();
-                            markerA.on('dragend', function () {
-                                calDirect();
-                            });
-                            markerB.on('dragend', function () {
-                                calDirect();
-                            });
-
-
-                        }
-                    },
-                ]
+                attributionControl: true
             }).setView([16, 100], 6);
             var hash = L.hash(map);
             L.control.locate().addTo(map);
@@ -253,12 +124,8 @@ $floodPercentWmsBaseUrl = $secureServiceUrl('DHDC_FLOOD_PERCENT_WMS_BASE_URL');
             var clusterHome = new L.MarkerClusterGroup().addTo(map);
 
             var baseLayers = {
-                "OSM ภูมิประเทศ": osm_street,
-                "OSM ถนน": L.tileLayer('//{s}.tile.osm.org/{z}/{x}/{y}.png'),
-                "ภาพถ่ายดาวเทียม": satellite,
-                "Google Hybrid": googleHybrid,
-                "Google Street": googleStreet.addTo(map),
-                "Google ภูมิประเทศ": googleTerrain,
+                "OSM ถนน": osm_street.addTo(map),
+                "ภาพถ่ายดาวเทียม": satellite
             }; // base map 
 
             //crosshair
