@@ -11,6 +11,9 @@ declare(strict_types=1);
  * Read-only verification:
  *   php tools/prepare-master-baseline.php --verify [--allow-accounts]
  *
+ * Print the exact target table names without row contents:
+ *   php tools/prepare-master-baseline.php --list-targets
+ *
  * Execute:
  *   php tools/prepare-master-baseline.php --execute --confirm=CLEAR-dhdc4
  *
@@ -21,13 +24,16 @@ declare(strict_types=1);
 $root = dirname(__DIR__);
 require $root . '/common/config/connect_database.php';
 
-$options = getopt('', ['execute', 'verify', 'allow-accounts', 'confirm:']);
+$options = getopt('', ['execute', 'verify', 'allow-accounts', 'list-targets', 'confirm:']);
 $execute = array_key_exists('execute', $options);
 $verifyOnly = array_key_exists('verify', $options);
 $allowAccounts = array_key_exists('allow-accounts', $options);
+$listTargets = array_key_exists('list-targets', $options);
 
-if (($execute && $verifyOnly) || ($allowAccounts && !$verifyOnly)) {
-    fwrite(STDERR, "Choose --execute or --verify; --allow-accounts is valid only with --verify.\n");
+if (($execute && $verifyOnly)
+    || ($allowAccounts && !$verifyOnly)
+    || ($listTargets && ($execute || $verifyOnly || $allowAccounts))) {
+    fwrite(STDERR, "Choose one of --execute, --verify, or --list-targets; --allow-accounts is valid only with --verify.\n");
     exit(2);
 }
 
@@ -208,6 +214,13 @@ foreach (array_keys($targets) as $table) {
 
 ksort($targets);
 sort($exchangeTables);
+
+if ($listTargets) {
+    foreach (array_keys($targets) as $table) {
+        echo $table, "\n";
+    }
+    exit(0);
+}
 
 $rowsBefore = 0;
 $nonEmptyBefore = 0;

@@ -94,17 +94,15 @@ php tools/prepare-master-baseline.php --verify
 
 ## 7. ขั้นตอนสร้าง Admin หลังติดตั้ง
 
-Master Baseline ไม่มีบัญชีผู้ใช้เริ่มต้นและไม่มีรหัสผ่านเริ่มต้นร่วมกัน ผู้ติดตั้งต้องกำหนดค่าต่อไปนี้ผ่าน environment ของเครื่องปลายทาง แล้วสร้าง Admin แรกเพียงครั้งเดียว:
+Master Baseline ไม่มีบัญชีผู้ใช้ในฐาน SQL เพื่อไม่ให้มี account ค้างก่อนติดตั้ง ผู้ติดตั้งต้องสร้าง Admin คนแรกเพียงครั้งเดียวหลังตั้งค่า Yii2 โดยกรอกอีเมลจริงของผู้ดูแลระบบ:
 
 ```powershell
-$env:DHDC_BOOTSTRAP_ADMIN_USERNAME = '<ชื่อผู้ใช้>'
 $env:DHDC_BOOTSTRAP_ADMIN_EMAIL = '<อีเมล>'
-$env:DHDC_BOOTSTRAP_ADMIN_PASSWORD = '<รหัสผ่านสุ่มอย่างน้อย 20 ตัวอักษร>'
-$env:DHDC_BOOTSTRAP_ADMIN_NAME = '<ชื่อที่แสดง>'
-php tools/bootstrap-admin.php --confirm=CREATE-INITIAL-ADMIN
+php tools/bootstrap-admin.php --use-default-credentials --dry-run --confirm=CREATE-INITIAL-ADMIN
+php tools/bootstrap-admin.php --use-default-credentials --confirm=CREATE-INITIAL-ADMIN
 ```
 
-เครื่องมือจะปฏิเสธการทำงานหากตาราง user ไม่ว่าง บทบาท Admin ไม่มีอยู่ หรือรหัสผ่านไม่ผ่านเงื่อนไข ห้ามบันทึกค่าจริงลง Git, เอกสาร, shell history หรือ log
+บัญชีเข้าสู่ระบบครั้งแรกคือ username `admin` และ password `P@ssw0rd` ตามข้อกำหนดการส่งมอบ ต้องเปลี่ยน password นี้ทันทีหลัง login และก่อนเปิดระบบให้เครื่องอื่นเข้าถึง เครื่องมือจะปฏิเสธการทำงานหากตาราง user ไม่ว่างหรือบทบาท Admin ไม่มีอยู่
 
 ## 8. เกณฑ์ส่งมอบ
 
