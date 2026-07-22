@@ -143,7 +143,7 @@ function Get-NewFileContent {
 }
 
 function Get-ProcessInvariants {
-    $result = & $DbCli --host=$DbHost --port=$DbPort --user=$DbUser --database=$DbName --batch --raw --skip-column-names --execute="SELECT last_time FROM last_transform LIMIT 1; SELECT last_time FROM last_err_check LIMIT 1; SELECT is_running FROM sys_process_running LIMIT 1;"
+    $result = & $DbCli --host=$DbHost --port=$DbPort --user=$DbUser --database=$DbName --batch --raw --skip-column-names --execute="SELECT COALESCE((SELECT CAST(last_time AS CHAR) FROM last_transform LIMIT 1), 'EMPTY'); SELECT COALESCE((SELECT CAST(last_time AS CHAR) FROM last_err_check LIMIT 1), 'EMPTY'); SELECT COALESCE((SELECT is_running FROM sys_process_running LIMIT 1), 'EMPTY');"
     Assert-True ($LASTEXITCODE -eq 0) "Process invariant query failed"
     Assert-True ($result.Count -eq 3) "Unexpected process invariant result"
     return ($result -join "|")

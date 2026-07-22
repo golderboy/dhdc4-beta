@@ -16,6 +16,7 @@ param(
     [int]$ExpectedImportFileRows = 52,
     [int]$ExpectedImportRecords = 90042,
     [string]$ExpectedBudgetYear = "2569",
+    [switch]$MasterBaseline,
     [switch]$SkipScreenshots
 )
 
@@ -56,7 +57,8 @@ try {
             -ExpectedImportZip $ExpectedImportZip `
             -ExpectedImportFileRows $ExpectedImportFileRows `
             -ExpectedImportRecords $ExpectedImportRecords `
-            -ExpectedBudgetYear $ExpectedBudgetYear
+            -ExpectedBudgetYear $ExpectedBudgetYear `
+            -MasterBaseline:$MasterBaseline
         Assert-True ($LASTEXITCODE -eq 0) "readonly smoke failed"
     }
 
@@ -96,9 +98,13 @@ try {
     }
 
     Invoke-Step "final database invariants" {
-        $expectedZipSql = $ExpectedImportZip.Replace("'", "''")
-        $expectedBudgetYearSql = $ExpectedBudgetYear.Replace("'", "''")
-        $sql = @"
+        if ($MasterBaseline) {
+            & $Php tools/prepare-master-baseline.php --verify --allow-accounts
+            Assert-True ($LASTEXITCODE -eq 0) "master baseline database verification failed"
+        } else {
+            $expectedZipSql = $ExpectedImportZip.Replace("'", "''")
+            $expectedBudgetYearSql = $ExpectedBudgetYear.Replace("'", "''")
+            $sql = @"
 SELECT COUNT(*) FROM sys_upload_fortythree WHERE file_name = '$expectedZipSql' AND note2 = 'OK';
 SELECT COUNT(*) FROM sys_count_import_file WHERE ZIP_NAME = '$expectedZipSql';
 SELECT COALESCE(SUM(TOTAL_RECORD), 0) FROM sys_count_import_file WHERE ZIP_NAME = '$expectedZipSql';
@@ -114,23 +120,24 @@ SELECT @@global.character_set_collations;
 SELECT TABLE_COLLATION FROM information_schema.TABLES WHERE TABLE_SCHEMA = '$DbName' AND TABLE_NAME = 't_person_db';
 SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = '$DbName' AND TABLE_COLLATION = 'utf8mb3_uca1400_ai_ci';
 "@
-        $result = & $DbCli --host=$DbHost --port=$DbPort --user=$DbUser --database=$DbName --batch --raw --skip-column-names --execute=$sql
-        Assert-True ($LASTEXITCODE -eq 0) "final database invariant query failed"
-        Assert-True ([int]$result[0] -ge 1) "expected import ZIP is not OK"
-        Assert-True ([int]$result[1] -eq $ExpectedImportFileRows) "unexpected imported file count"
-        Assert-True ([int]$result[2] -eq $ExpectedImportRecords) "unexpected imported record total"
-        Assert-True ([string]$result[3] -eq $ExpectedBudgetYear) "pk_byear does not resolve to expected budget year $ExpectedBudgetYear"
-        Assert-True ([int]$result[4] -gt 0) "sys_dhdc_count_file has no rows for budget year $ExpectedBudgetYear"
-        Assert-True ([int]$result[5] -gt 0) "sys_dhdc_count_file total is zero for budget year $ExpectedBudgetYear"
-        Assert-True ([string]$result[6] -ne "") "last_transform is empty"
-        Assert-True ([string]$result[7] -ne "") "last_err_check is empty"
-        Assert-True ([datetime]$result[7] -ge [datetime]$result[6]) "last_err_check is older than last_transform"
-        Assert-True ($result[8] -eq "false") "sys_process_running is not false"
-        Assert-True ($result[9] -eq "end") "hdc_log did not end cleanly"
-        Assert-True ($result[10] -eq "end") "sys_check_process is not end"
-        Assert-True ([string]$result[11] -like "*utf8mb3=utf8mb3_general_ci*") "MariaDB does not map utf8mb3 to utf8mb3_general_ci"
-        Assert-True ($result[12] -eq "utf8mb3_general_ci") "t_person_db collation is not utf8mb3_general_ci"
-        Assert-True ([int]$result[13] -eq 0) "database contains utf8mb3_uca1400_ai_ci tables"
+            $result = & $DbCli --host=$DbHost --port=$DbPort --user=$DbUser --database=$DbName --batch --raw --skip-column-names --execute=$sql
+            Assert-True ($LASTEXITCODE -eq 0) "final database invariant query failed"
+            Assert-True ([int]$result[0] -ge 1) "expected import ZIP is not OK"
+            Assert-True ([int]$result[1] -eq $ExpectedImportFileRows) "unexpected imported file count"
+            Assert-True ([int]$result[2] -eq $ExpectedImportRecords) "unexpected imported record total"
+            Assert-True ([string]$result[3] -eq $ExpectedBudgetYear) "pk_byear does not resolve to expected budget year $ExpectedBudgetYear"
+            Assert-True ([int]$result[4] -gt 0) "sys_dhdc_count_file has no rows for budget year $ExpectedBudgetYear"
+            Assert-True ([int]$result[5] -gt 0) "sys_dhdc_count_file total is zero for budget year $ExpectedBudgetYear"
+            Assert-True ([string]$result[6] -ne "") "last_transform is empty"
+            Assert-True ([string]$result[7] -ne "") "last_err_check is empty"
+            Assert-True ([datetime]$result[7] -ge [datetime]$result[6]) "last_err_check is older than last_transform"
+            Assert-True ($result[8] -eq "false") "sys_process_running is not false"
+            Assert-True ($result[9] -eq "end") "hdc_log did not end cleanly"
+            Assert-True ($result[10] -eq "end") "sys_check_process is not end"
+            Assert-True ([string]$result[11] -like "*utf8mb3=utf8mb3_general_ci*") "MariaDB does not map utf8mb3 to utf8mb3_general_ci"
+            Assert-True ($result[12] -eq "utf8mb3_general_ci") "t_person_db collation is not utf8mb3_general_ci"
+            Assert-True ([int]$result[13] -eq 0) "database contains utf8mb3_uca1400_ai_ci tables"
+        }
     }
 
     Write-Output "verify-release: OK"

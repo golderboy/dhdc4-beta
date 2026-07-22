@@ -17,7 +17,8 @@
 
 # Test, browser, and generated output
 /output/
-/frontend/web/fortythreebackup/
+/frontend/web/fortythreebackup/*
+!/frontend/web/fortythreebackup/.gitignore
 
 # Local backups and legacy archives
 /_codex_backup/

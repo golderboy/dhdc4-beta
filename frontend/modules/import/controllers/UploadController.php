@@ -122,6 +122,8 @@ class UploadController extends Controller {
             $model->save(FALSE);
             $path = './fortythree/';
             $pathbackup = './fortythreebackup/';
+            FileHelper::createDirectory($path);
+            FileHelper::createDirectory($pathbackup);
             $upfile->saveAs($path . $newname);
             copy($path . $newname, $pathbackup . $newname);
 

@@ -12,7 +12,8 @@ param(
     [string]$ExpectedImportZip = "F43_11207_20260601133018.zip",
     [int]$ExpectedImportFileRows = 52,
     [int]$ExpectedImportRecords = 90042,
-    [string]$ExpectedBudgetYear = "2569"
+    [string]$ExpectedBudgetYear = "2569",
+    [switch]$MasterBaseline
 )
 
 $ErrorActionPreference = "Stop"
@@ -163,17 +164,40 @@ try {
     Write-Output "smoke-ui-readonly: database invariants"
     $dbResult = & $DbCli --host=$DbHost --port=$DbPort --user=$DbUser --database=$DbName --batch --raw --skip-column-names --execute="SELECT COUNT(*) FROM sys_upload_fortythree WHERE note2='OK'; SELECT COUNT(*) FROM sys_count_import_file; SELECT is_running FROM sys_process_running LIMIT 1; SELECT COUNT(*) FROM sys_reportcategory_dhdc; SELECT cat_id FROM sys_reportcategory_dhdc ORDER BY cat_id LIMIT 1; SELECT CAST(yearprocess AS UNSIGNED) + 543 FROM pk_byear LIMIT 1;"
     Assert-True ($LASTEXITCODE -eq 0) "Database invariant query failed"
-    Assert-True ([int]$dbResult[0] -ge 1) "No successful 43-file upload found"
-    Assert-True ([int]$dbResult[1] -ge 1) "sys_count_import_file is empty"
+    if ($MasterBaseline) {
+        Assert-True ([int]$dbResult[0] -eq 0) "Master baseline contains successful 43-file upload rows"
+        Assert-True ([int]$dbResult[1] -eq 0) "Master baseline contains imported-file count rows"
+    } else {
+        Assert-True ([int]$dbResult[0] -ge 1) "No successful 43-file upload found"
+        Assert-True ([int]$dbResult[1] -ge 1) "sys_count_import_file is empty"
+    }
     Assert-True ($dbResult[2] -eq "false") "sys_process_running is not false"
     Assert-True ([int]$dbResult[3] -ge 1) "No HDC report category found"
     Assert-True ([string]$dbResult[5] -eq $ExpectedBudgetYear) "pk_byear does not resolve to expected budget year $ExpectedBudgetYear"
     $hdcCategoryId = [uri]::EscapeDataString([string]$dbResult[4])
 
-    Write-Output "smoke-ui-readonly: 43-file workflow invariants"
-    $expectedZipSql = $ExpectedImportZip.Replace("'", "''")
-    $expectedBudgetYearSql = $ExpectedBudgetYear.Replace("'", "''")
-    $workflowSql = @"
+    if ($MasterBaseline) {
+        Write-Output "smoke-ui-readonly: master baseline workflow invariants"
+        $workflowSql = @"
+SELECT COUNT(*) FROM sys_upload_fortythree;
+SELECT COUNT(*) FROM sys_count_import_file;
+SELECT COUNT(*) FROM last_transform;
+SELECT COUNT(*) FROM last_err_check;
+SELECT COUNT(*) FROM hdc_log;
+SELECT COUNT(*) FROM sys_check_process WHERE fnc_name IS NOT NULL OR time IS NOT NULL;
+SELECT COUNT(*) FROM sys_dhdc_count_file;
+"@
+        $workflow = & $DbCli --host=$DbHost --port=$DbPort --user=$DbUser --database=$DbName --batch --raw --skip-column-names --execute=$workflowSql
+        Assert-True ($LASTEXITCODE -eq 0) "Master baseline invariant query failed"
+        Assert-True ($workflow.Count -eq 7) "Master baseline invariant query returned incomplete results"
+        foreach ($value in $workflow) {
+            Assert-True ([int]$value -eq 0) "Master baseline contains import, transform, QC, or report result data"
+        }
+    } else {
+        Write-Output "smoke-ui-readonly: 43-file workflow invariants"
+        $expectedZipSql = $ExpectedImportZip.Replace("'", "''")
+        $expectedBudgetYearSql = $ExpectedBudgetYear.Replace("'", "''")
+        $workflowSql = @"
 SELECT COUNT(*) FROM sys_upload_fortythree WHERE file_name = '$expectedZipSql' AND note2 = 'OK';
 SELECT COUNT(*) FROM sys_count_import_file WHERE ZIP_NAME = '$expectedZipSql';
 SELECT COALESCE(SUM(TOTAL_RECORD), 0) FROM sys_count_import_file WHERE ZIP_NAME = '$expectedZipSql';
@@ -185,19 +209,20 @@ SELECT fnc_name FROM sys_check_process LIMIT 1;
 SELECT COUNT(*) FROM sys_dhdc_count_file WHERE b_year = '$expectedBudgetYearSql';
 SELECT COALESCE(SUM(total), 0) FROM sys_dhdc_count_file WHERE b_year = '$expectedBudgetYearSql';
 "@
-    $workflow = & $DbCli --host=$DbHost --port=$DbPort --user=$DbUser --database=$DbName --batch --raw --skip-column-names --execute=$workflowSql
-    Assert-True ($LASTEXITCODE -eq 0) "43-file workflow invariant query failed"
-    Assert-True ([int]$workflow[0] -ge 1) "Expected import ZIP is not marked OK: $ExpectedImportZip"
-    Assert-True ([int]$workflow[1] -eq $ExpectedImportFileRows) "Unexpected imported 43-file row count for $ExpectedImportZip"
-    Assert-True ([int]$workflow[2] -eq $ExpectedImportRecords) "Unexpected imported record total for $ExpectedImportZip"
-    Assert-True ([string]$workflow[3] -ne "") "last_transform is empty"
-    Assert-True ([string]$workflow[4] -ne "") "last_err_check is empty"
-    Assert-True ([datetime]$workflow[4] -ge [datetime]$workflow[3]) "last_err_check is older than last_transform"
-    Assert-True ($workflow[5] -eq "end") "hdc_log did not end cleanly"
-    Assert-True ([int]$workflow[6] -gt 0) "hdc_log is empty"
-    Assert-True ($workflow[7] -eq "end") "sys_check_process is not end"
-    Assert-True ([int]$workflow[8] -gt 0) "sys_dhdc_count_file has no rows for budget year $ExpectedBudgetYear"
-    Assert-True ([int]$workflow[9] -gt 0) "sys_dhdc_count_file total is zero for budget year $ExpectedBudgetYear"
+        $workflow = & $DbCli --host=$DbHost --port=$DbPort --user=$DbUser --database=$DbName --batch --raw --skip-column-names --execute=$workflowSql
+        Assert-True ($LASTEXITCODE -eq 0) "43-file workflow invariant query failed"
+        Assert-True ([int]$workflow[0] -ge 1) "Expected import ZIP is not marked OK: $ExpectedImportZip"
+        Assert-True ([int]$workflow[1] -eq $ExpectedImportFileRows) "Unexpected imported 43-file row count for $ExpectedImportZip"
+        Assert-True ([int]$workflow[2] -eq $ExpectedImportRecords) "Unexpected imported record total for $ExpectedImportZip"
+        Assert-True ([string]$workflow[3] -ne "") "last_transform is empty"
+        Assert-True ([string]$workflow[4] -ne "") "last_err_check is empty"
+        Assert-True ([datetime]$workflow[4] -ge [datetime]$workflow[3]) "last_err_check is older than last_transform"
+        Assert-True ($workflow[5] -eq "end") "hdc_log did not end cleanly"
+        Assert-True ([int]$workflow[6] -gt 0) "hdc_log is empty"
+        Assert-True ($workflow[7] -eq "end") "sys_check_process is not end"
+        Assert-True ([int]$workflow[8] -gt 0) "sys_dhdc_count_file has no rows for budget year $ExpectedBudgetYear"
+        Assert-True ([int]$workflow[9] -gt 0) "sys_dhdc_count_file total is zero for budget year $ExpectedBudgetYear"
+    }
 
     $frontendAppLog = Join-Path $root "frontend\runtime\logs\app.log"
     $backendAppLog = Join-Path $root "backend\runtime\logs\app.log"
@@ -255,9 +280,11 @@ SELECT COALESCE(SUM(total), 0) FROM sys_dhdc_count_file WHERE b_year = '$expecte
 
     $protectedFrontendUiUrls = @(
         "http://$HostName`:$FrontendPort/import/upload/index",
-        "http://$HostName`:$FrontendPort/import/upload/view?id=1",
         "http://$HostName`:$FrontendPort/import/count-file/index"
     )
+    if (-not $MasterBaseline) {
+        $protectedFrontendUiUrls += "http://$HostName`:$FrontendPort/import/upload/view?id=1"
+    }
     foreach ($url in $protectedFrontendUiUrls) {
         Write-Output "smoke-ui-readonly: authenticated GET $url"
         $response = Get-UrlWithSession $url $frontendTestSession
